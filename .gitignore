@@ -1,0 +1,11 @@
+.idea
+docs
+reference
+
+# helpers
+build.sh
+
+# dotnet build output
+bin/
+obj/
+*.user
