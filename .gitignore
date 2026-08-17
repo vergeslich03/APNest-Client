@@ -1,7 +1,6 @@
 .idea
 docs
 reference
-out
 __pycache__
 
 # helpers
