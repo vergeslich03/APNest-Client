@@ -1,9 +1,12 @@
 .idea
 docs
 reference
+out
+__pycache__
 
 # helpers
 build.sh
+build_apworld.py
 
 # dotnet build output
 bin/
