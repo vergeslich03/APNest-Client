@@ -17,16 +17,22 @@ public class ConnectUI
     
     public ConnectUI()
     {
+        // TODO: text-entry is hardcoded for now — GUI.TextField/PasswordField throw
+        // (GUIStateObjects.GetStateObject "Method unstripping failed", see
+        // reference/iron-nest-api-notes.md). Revisit once a workaround is found, and
+        // investigate the main-menu envelope-on-the-books spot for a diegetic trigger
+        // instead of the current F8 keybind.
         MelonPreferences_Category category = MelonPreferences.CreateCategory("APNestClient");
-        MelonPreferences_Entry<string> apHostEntry = category.CreateEntry("APHost", "archipelago.gg");
+        MelonPreferences_Entry<string> apHostEntry = category.CreateEntry("APHost", "localhost");
         MelonPreferences_Entry<int> apPortEntry = category.CreateEntry("APPort", 38281);
-        MelonPreferences_Entry<string> apSlotEntry = category.CreateEntry("APSlot", "IRON NEST");
-        
+        MelonPreferences_Entry<string> apSlotEntry = category.CreateEntry("APSlot", "Player1");
+
         this._apHost = apHostEntry;
         this._apPort = apPortEntry;
         this._apSlotName = apSlotEntry;
+        this._apPassword = "";
         this._preferenceCategory = category;
-        
+
         this._window = new Rect((Screen.width / 2) - 100f, 10f, 200f, 100f);
     }
 
@@ -44,35 +50,41 @@ public class ConnectUI
     {
         if (this._visible)
         {
-            _window = GUILayout.Window(
-                1,
-                _window,
-                new System.Action<int>(DrawWindowContents),
-                "Archipelago Connection"
-            );
+            DrawWindowContents();
         }
     }
 
-    private void DrawWindowContents(int windowID)
+    private void DrawWindowContents()
     {
-        GUILayout.Label("Archipelago Host:");
-        SetApHost(GUILayout.TextField(GetApHost()));
-        GUILayout.Label("Archipelago Port:");
-        if (int.TryParse(GUILayout.TextField(GetApPort().ToString()), out int port))
-        {
-            SetApPort(port);
-        }
-        GUILayout.Label("Archipelago Slot:");
-        SetApSlotName(GUILayout.TextField(GetApSlotName()));
-        GUILayout.Label("Archipelago Password:");
-        SetApPassword(GUILayout.PasswordField(GetApPassword(), '*'));
-        if (GUILayout.Button("Connect"))
+        const float rowHeight = 20f;
+        const float labelWidth = 90f;
+        const float fieldWidth = 100f;
+
+        float x = _window.x;
+        float y = _window.y;
+
+        // Read-only for now — see the hardcoded-values TODO in the constructor.
+        GUI.Label(new Rect(x, y, labelWidth, rowHeight), "Host:");
+        GUI.Label(new Rect(x + labelWidth, y, fieldWidth, rowHeight), GetApHost());
+        y += rowHeight;
+
+        GUI.Label(new Rect(x, y, labelWidth, rowHeight), "Port:");
+        GUI.Label(new Rect(x + labelWidth, y, fieldWidth, rowHeight), GetApPort().ToString());
+        y += rowHeight;
+
+        GUI.Label(new Rect(x, y, labelWidth, rowHeight), "Slot:");
+        GUI.Label(new Rect(x + labelWidth, y, fieldWidth, rowHeight), GetApSlotName());
+        y += rowHeight;
+
+        GUI.Label(new Rect(x, y, labelWidth, rowHeight), "Password:");
+        GUI.Label(new Rect(x + labelWidth, y, fieldWidth, rowHeight), string.IsNullOrEmpty(GetApPassword()) ? "(none)" : "****");
+        y += rowHeight;
+
+        if (GUI.Button(new Rect(x, y, labelWidth + fieldWidth, rowHeight), "Connect"))
         {
             MelonLogger.Msg("Connect Button clicked. Connection Info: " + GetApHost() + "/" + GetApPort() + "/" + GetApSlotName());
             Persist();
         }
-        
-        GUI.DragWindow(new Rect(0f, 0f, 200f, 20f));
     }
 
     public string GetApHost()
