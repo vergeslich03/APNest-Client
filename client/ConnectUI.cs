@@ -11,6 +11,7 @@ public class ConnectUI
     private MelonPreferences_Entry<int> _apPort;
     private MelonPreferences_Entry<string> _apSlotName;
     private string _apPassword;
+    private APSession _apSession;
 
     private bool _visible;
     private Rect _window;
@@ -27,11 +28,12 @@ public class ConnectUI
         MelonPreferences_Entry<int> apPortEntry = category.CreateEntry("APPort", 38281);
         MelonPreferences_Entry<string> apSlotEntry = category.CreateEntry("APSlot", "Player1");
 
-        this._apHost = apHostEntry;
-        this._apPort = apPortEntry;
-        this._apSlotName = apSlotEntry;
-        this._apPassword = "";
-        this._preferenceCategory = category;
+        _preferenceCategory = category;
+        
+        _apHost = apHostEntry;
+        _apPort = apPortEntry;
+        _apSlotName = apSlotEntry;
+        _apPassword = "";
 
         this._window = new Rect((Screen.width / 2) - 100f, 10f, 200f, 100f);
     }
@@ -84,6 +86,8 @@ public class ConnectUI
         {
             MelonLogger.Msg("Connect Button clicked. Connection Info: " + GetApHost() + "/" + GetApPort() + "/" + GetApSlotName());
             Persist();
+            _apSession = new APSession(GetApHost(), GetApPort(), GetApSlotName(), GetApPassword());
+            _apSession.Connect();
         }
     }
 
