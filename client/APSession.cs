@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using MelonLoader;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
@@ -15,36 +18,27 @@ public enum APConnectionState
 
 public class APSession
 {
-    private string _host;
-    private int _port;
-    private string _slotName;
-    private string _password;
+    private ConcurrentQueue<string> _queue = new();
 
     private APConnectionState _connectionState = APConnectionState.Disconnected;
     private string _loginFailureReason;
-    
-    public APSession(string host, int port, string slotName, string password)
-    {
-        _host = host;
-        _port = port;
-        _slotName = slotName;
-        _password = password;
-    }
 
-    public void Connect()
+    private ArchipelagoSession _session;
+
+    public void Connect(string host, int port, string slotName, string password)
     {
         _connectionState = APConnectionState.Connecting;
         try
         {
-            ArchipelagoSession session = ArchipelagoSessionFactory.CreateSession(_host, _port);
-            LoginResult connResult = session.TryConnectAndLogin(
+            _session = ArchipelagoSessionFactory.CreateSession(host, port);
+            LoginResult connResult = _session.TryConnectAndLogin(
                 "IRON NEST: Heavy Turret Simulator",
-                _slotName,
+                slotName,
                 ItemsHandlingFlags.IncludeOwnItems,
                 new Version(0, 6, 7),
                 ["AP"],
                 null,
-                _password
+                password
             );
 
             if (connResult is LoginFailure errorResult)
@@ -57,6 +51,16 @@ public class APSession
             
             _connectionState = APConnectionState.Connected;
             MelonLogger.Msg("Successfully Connected to Archipelago, have fun!");
+
+            List<string> locationBatch = new List<string>();
+            while (_queue.TryDequeue(out string location))
+            {
+                locationBatch.Add(location);
+            }
+            
+            SendLocationChecks(locationBatch.ToArray());
+            
+            MelonLogger.Msg("Location Check Queue flushed.");
         }
         catch (Exception e)
         {
@@ -68,10 +72,46 @@ public class APSession
     
     public void Disconnect()
     {
+        _session.Socket.DisconnectAsync().GetAwaiter().GetResult();
+        _connectionState = APConnectionState.Disconnected;
     }
-    
-    public void SendLocationCheck()
+
+    public void SendLocationChecks(string[] locationNames)
     {
+        MelonLogger.Msg("Sending location checks to Archipelago");
+        if (_connectionState == APConnectionState.Connected)
+        {
+            long[] locationIDs = APNamesToIDs(locationNames);
+            
+            _session.Locations.CompleteLocationChecksAsync(locationIDs).ContinueWith(t =>
+                {
+                    if (t.IsFaulted || t.IsCanceled)
+                    {
+                        foreach (var locationName in locationNames)
+                        {
+                            _queue.Enqueue(locationName);
+                        }
+                        
+                        MelonLogger.Warning("Could not Send location checks.");
+                        MelonLogger.Warning("Reason: " + (t.Exception?.InnerExceptions[0].Message ?? "canceled"));
+                    }
+                }
+            );
+            return;
+        }
+        
+        MelonLogger.Warning("Client Not Connected to Archipelago");
+        foreach (var locationName in locationNames)
+        {
+            _queue.Enqueue(locationName);
+        }   
+    }
+
+    private long[] APNamesToIDs(string[] names)
+    {
+        return names.Select(name =>
+            _session.Locations.GetLocationIdFromName("IRON NEST: Heavy Turret Simulator", name)
+        ).ToArray();
     }
 
     public APConnectionState GetConnectionState()
