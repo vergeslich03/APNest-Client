@@ -34,23 +34,24 @@ public class ConnectUI
         _apPort = apPortEntry;
         _apSlotName = apSlotEntry;
         _apPassword = "";
+        _apSession =  new APSession();
 
-        this._window = new Rect((Screen.width / 2) - 100f, 10f, 200f, 100f);
+        _window = new Rect((Screen.width / 2) - 100f, 10f, 200f, 100f);
     }
 
     public void Persist()
     {
-        this._preferenceCategory.SaveToFile();
+        _preferenceCategory.SaveToFile();
     }
 
     public void ToggleVisibility()
     {
-        this._visible = !this._visible;
+        _visible = !_visible;
     }
 
     public void Draw()
     {
-        if (this._visible)
+        if (_visible)
         {
             DrawWindowContents();
         }
@@ -86,29 +87,33 @@ public class ConnectUI
         {
             MelonLogger.Msg("Connect Button clicked. Connection Info: " + GetApHost() + "/" + GetApPort() + "/" + GetApSlotName());
             Persist();
-            _apSession = new APSession(GetApHost(), GetApPort(), GetApSlotName(), GetApPassword());
-            _apSession.Connect();
+            _apSession.Connect(GetApHost(), GetApPort(), GetApSlotName(),  GetApPassword());
         }
     }
 
     public string GetApHost()
     {
-        return this._apHost.Value;
+        return _apHost.Value;
     }
 
     public int GetApPort()
     {
-        return this._apPort.Value;
+        return _apPort.Value;
     }
     
     public string GetApSlotName()
     {
-        return this._apSlotName.Value;
+        return _apSlotName.Value;
     }
 
     public string GetApPassword()
     {
-        return this._apPassword;
+        return _apPassword;
+    }
+
+    public APSession GetApSession()
+    {
+        return _apSession;
     }
 
     public void SetApHost(string host)
