@@ -9,17 +9,18 @@ namespace APNestClient
     {
         private ConnectUI _connectUI;
         private ItemReceiver _itemReceiver;
+        private APSession _apSession;
 
         public override void OnInitializeMelon()
         {
             MelonLogger.Msg("APNest Client loaded.");
 
             _connectUI = new ConnectUI();
-            APSession apSession = _connectUI.GetApSession();
-            
+            _apSession = _connectUI.GetApSession();
+
             _itemReceiver = new ItemReceiver();
 
-            MissionCompleteChecks.LocationCompleted += name => apSession.SendLocationChecks(new []{name});
+            MissionCompleteChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
         }
 
         public override void OnGUI()
@@ -33,6 +34,8 @@ namespace APNestClient
             {
                 _connectUI.ToggleVisibility();
             }
+
+            _apSession.ProcessPendingItems();
         }
     }
 }
