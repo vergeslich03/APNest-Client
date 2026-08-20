@@ -32,8 +32,9 @@ public class LookupTables
             MissionNameToAPLocationNameTable.Add("PhantomBattery", "Mission 13: Phantom Battery");
             MissionNameToAPLocationNameTable.Add("FinalHarvest", "Mission 14: Final Harvest");
             MissionNameToAPLocationNameTable.Add("WhiteShells", "Mission 15: White Shells");
+            return;
         }
-        else if (tableType == TableType.Items)
+        if (tableType == TableType.Items)
         {
             // progression
             ApItemIdToGameId.Add(9140001, "HEShell");
@@ -71,6 +72,7 @@ public class LookupTables
             ApItemIdToGameId.Add(9143002, "TrapFillMagazine");
             ApItemIdToGameId.Add(9143003, "TrapSabotage");
             ApItemIdToGameId.Add(9143004, "TrapCounterBattery");
+            return;
         }
     }
 }
