@@ -24,6 +24,8 @@ public class APSession
     private string _loginFailureReason;
 
     private ArchipelagoSession _session;
+    
+    public static event Action<string> ItemReceived;
 
     public void Connect(string host, int port, string slotName, string password)
     {
@@ -61,6 +63,13 @@ public class APSession
             SendLocationChecks(locationBatch.ToArray());
             
             MelonLogger.Msg("Location Check Queue flushed.");
+
+            while (_session.Items.Any())
+            {
+                ReceiveItem();
+            }
+
+            _session.Items.ItemReceived += x => ReceiveItem();
         }
         catch (Exception e)
         {
@@ -112,6 +121,17 @@ public class APSession
         return names.Select(name =>
             _session.Locations.GetLocationIdFromName("IRON NEST: Heavy Turret Simulator", name)
         ).ToArray();
+    }
+
+    public void ReceiveItem()
+    {
+        string itemName = GetApItemName(_session.Items.DequeueItem().ItemId);
+        ItemReceived?.Invoke(itemName);
+    }
+
+    public string GetApItemName(long itemId)
+    {
+        return _session.Items.GetItemName(itemId);
     }
 
     public APConnectionState GetConnectionState()
