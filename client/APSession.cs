@@ -68,6 +68,8 @@ public class APSession
             {
                 ReceiveItem();
             }
+            
+            MelonLogger.Msg("Pending Items flushed.");
 
             _session.Items.ItemReceived += x => ReceiveItem();
         }
