@@ -19,6 +19,7 @@ public enum APConnectionState
 public class APSession
 {
     private ConcurrentQueue<string> _queue = new();
+    private ConcurrentQueue<string> _pendingItemNames = new();
 
     private APConnectionState _connectionState = APConnectionState.Disconnected;
     private string _loginFailureReason;
@@ -128,7 +129,15 @@ public class APSession
     public void ReceiveItem()
     {
         string itemName = GetApItemName(_session.Items.DequeueItem().ItemId);
-        ItemReceived?.Invoke(itemName);
+        _pendingItemNames.Enqueue(itemName);
+    }
+
+    public void ProcessPendingItems()
+    {
+        while (_pendingItemNames.TryDequeue(out string itemName))
+        {
+            ItemReceived?.Invoke(itemName);
+        }
     }
 
     public string GetApItemName(long itemId)
