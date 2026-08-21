@@ -13,6 +13,8 @@ public class ItemReceiver
     
     private ConcurrentQueue<string> _itemQueue = new();
     private bool _missionChangedSubscribed;
+    private volatile bool _pendingMissionLoad;
+    private volatile string _pendingMissionId;
 
     public ItemReceiver()
     {
@@ -104,7 +106,53 @@ public class ItemReceiver
 
     private void HandleTrapItem(string trapName)
     {
-        
+        switch (trapName)
+        {
+            case "TrapFillMagazine":
+            {
+                PunchcardDefinitionV2 starShellCard =  RequisitionConsoleManager.Instance.AllDefinitions["STARShell"];
+                ShellDefinition shell = null;
+                foreach (Node node in starShellCard.Graph.nodes)
+                {
+                    State_AddShell shellCandidate = node.TryCast<State_AddShell>();
+                    if (shellCandidate != null)
+                    {
+                        shell = shellCandidate.Shell;
+                        break;
+                    }
+                }
+
+                if (shell == null)
+                {
+                    MelonLogger.Warning("Shell configured for Trap not found (STARShell)");
+                    break;
+                }
+                
+                ShellSlotPool shellSlotPool = UnityEngine.Object.FindFirstObjectByType<ShellSlotPool>();
+                try
+                {
+                    bool inserted = true;
+                    while (inserted)
+                    {
+                        inserted = shellSlotPool.InsertShell(
+                            shell,
+                            ShellSlotPool.ShellInsertionMode.FillOneThenNext,
+                            ShellSlotPool.ShellSource.Punchcard,
+                            out _,
+                            out _
+                        );
+                    }
+                }
+                catch (Il2CppInterop.Runtime.Il2CppException)
+                {
+                    // game throws Error if the whole magazine is full instead of returning false
+                    // Not sure if this is a bug or simply forgotten and handled via try/catch in game
+                    MelonLogger.Msg("Trap Magazine Fill completed");
+                }
+
+                break;
+            }
+        }
     }
 
     public void RegisterMissionChangedEventHook()
@@ -114,8 +162,26 @@ public class ItemReceiver
             return;
         }
 
-        Action<MissionGraph, MissionGraph> handler = (from, to) => DrainQueue();
+        Action<MissionGraph, MissionGraph> handler = (from, to) =>
+        {
+            if (to != null)
+            {
+                _pendingMissionId = to.MissionID;
+                _pendingMissionLoad = true;
+            }
+        };
         MissionManager.Instance.MissionChanged += handler;
         _missionChangedSubscribed = true;
+    }
+    
+    public void ProcessPendingMissionLoad()
+    {
+        if (!_pendingMissionLoad)
+        {
+            return;
+        }
+
+        _pendingMissionLoad = false;
+        DrainQueue();
     }
 }
