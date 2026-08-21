@@ -163,9 +163,20 @@ public class APSession
 
     private long[] APNamesToIDs(string[] names)
     {
-        return names.Select(name =>
-            _session.Locations.GetLocationIdFromName("IRON NEST: Heavy Turret Simulator", name)
-        ).ToArray();
+        List<long> foundIds = new();
+        foreach (string name in names)
+        {
+            long id = _session.Locations.GetLocationIdFromName("IRON NEST: Heavy Turret Simulator", name);
+            if (id == -1)
+            {
+                MelonLogger.Warning("Could not find location ID for: " + name);
+                continue;
+            }
+            
+            foundIds.Add(id);
+        }
+        
+        return foundIds.ToArray();
     }
 
     public void ReceiveItem()
