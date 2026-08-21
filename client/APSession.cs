@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using MelonLoader;
+using MelonLoader.Utils;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
 
@@ -18,6 +20,10 @@ public enum APConnectionState
 
 public class APSession
 {
+    private readonly string _dataDirectory = Path.Combine(MelonEnvironment.UserDataDirectory, "APNestClient");
+    private readonly string _locationsQueueFile;
+    private static object _locationQueueLock = new object();
+    
     private ConcurrentQueue<string> _queue = new();
     private ConcurrentQueue<string> _pendingItemNames = new();
 
@@ -27,6 +33,27 @@ public class APSession
     private ArchipelagoSession _session;
     
     public static event Action<string> ItemReceived;
+
+    public APSession()
+    {
+        _locationsQueueFile = Path.Combine(_dataDirectory, "LocationsQueue.txt");
+
+        if (!Directory.Exists(_dataDirectory))
+        {
+            Directory.CreateDirectory(_dataDirectory);
+        }
+
+        if (!File.Exists(_locationsQueueFile))
+        {
+            File.Create(_locationsQueueFile).Close();
+        }
+
+        string[] persistedQueue = File.ReadAllLines(_locationsQueueFile);
+        foreach (string persistedQueueItem in persistedQueue)
+        {
+            _queue.Enqueue(persistedQueueItem);
+        }
+    }
 
     public void Connect(string host, int port, string slotName, string password)
     {
@@ -54,7 +81,7 @@ public class APSession
             
             _connectionState = APConnectionState.Connected;
             MelonLogger.Msg("Successfully Connected to Archipelago, have fun!");
-
+            
             List<string> locationBatch = new List<string>();
             while (_queue.TryDequeue(out string location))
             {
@@ -62,8 +89,14 @@ public class APSession
             }
             
             SendLocationChecks(locationBatch.ToArray());
+
+            lock (_locationQueueLock)
+            {
+                File.WriteAllLines(_locationsQueueFile, _queue);
+            }
             
             MelonLogger.Msg("Location Check Queue flushed.");
+            
 
             while (_session.Items.Any())
             {
@@ -101,7 +134,7 @@ public class APSession
                     {
                         foreach (var locationName in locationNames)
                         {
-                            _queue.Enqueue(locationName);
+                            EnqueueLocation(locationName);
                         }
                         
                         MelonLogger.Warning("Could not Send location checks.");
@@ -115,8 +148,17 @@ public class APSession
         MelonLogger.Warning("Client Not Connected to Archipelago");
         foreach (var locationName in locationNames)
         {
-            _queue.Enqueue(locationName);
+            EnqueueLocation(locationName);
         }   
+    }
+
+    private void EnqueueLocation(string locationName)
+    {
+        lock (_locationQueueLock)
+        {
+            _queue.Enqueue(locationName);
+            File.WriteAllLines(_locationsQueueFile, _queue);
+        }
     }
 
     private long[] APNamesToIDs(string[] names)
