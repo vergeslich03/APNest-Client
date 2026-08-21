@@ -2,11 +2,11 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Collections.Generic;
-using System.Linq;
 using MelonLoader;
 using MelonLoader.Utils;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
+using Il2Cpp;
 
 namespace APNestClient;
 
@@ -23,6 +23,8 @@ public class APSession
     private readonly string _dataDirectory = Path.Combine(MelonEnvironment.UserDataDirectory, "APNestClient");
     private readonly string _locationsQueueFile;
     private static object _locationQueueLock = new object();
+
+    private readonly string _seedFile;
     
     private ConcurrentQueue<string> _queue = new();
     private ConcurrentQueue<string> _pendingItemNames = new();
@@ -37,6 +39,7 @@ public class APSession
     public APSession()
     {
         _locationsQueueFile = Path.Combine(_dataDirectory, "LocationsQueue.txt");
+        _seedFile = Path.Combine(_dataDirectory, "Seed.txt");
 
         if (!Directory.Exists(_dataDirectory))
         {
@@ -81,6 +84,32 @@ public class APSession
             
             _connectionState = APConnectionState.Connected;
             MelonLogger.Msg("Successfully Connected to Archipelago, have fun!");
+
+            string currentSeed = _session.RoomState.Seed;
+            if (!File.Exists(_seedFile))
+            {
+                File.Create(_seedFile).Close();
+                List<string> tmpList = new();
+                tmpList.Add(currentSeed);
+                File.WriteAllLines(_seedFile, tmpList);
+            }
+            if (File.ReadAllLines(_seedFile)[0] != currentSeed)
+            {
+                MelonLogger.Warning("New Seed detected");
+
+                lock (_locationQueueLock)
+                {
+                    _queue.Clear();
+                    File.WriteAllLines(_locationsQueueFile, _queue);
+                }
+                
+                _pendingItemNames.Clear();
+
+                List<string> tmpList = new();
+                tmpList.Add(currentSeed);
+                File.WriteAllLines(_seedFile, tmpList);
+                ProgressionManager.Instance.ResetAllUserProgress();
+            }
             
             List<string> locationBatch = new List<string>();
             while (_queue.TryDequeue(out string location))
