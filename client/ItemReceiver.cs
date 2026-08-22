@@ -323,6 +323,101 @@ public class ItemReceiver
 
                 break;
             }
+            case "TrapEmergencyMove":
+            {
+                PunchcardDefinitionV2 emergencyMoveCard = RequisitionConsoleManager.Instance.AllDefinitions["MoveZone"];
+
+                LocationSelection moveTarget = null;
+                foreach (Node node in emergencyMoveCard.Graph.nodes)
+                {
+                    State_MoveTurret moveCandidate = node.TryCast<State_MoveTurret>();
+                    if (moveCandidate != null)
+                    {
+                        moveTarget = moveCandidate.LocationToMoveTo;
+                        break;
+                    }
+                }
+
+                if (moveTarget == null)
+                {
+                    MelonLogger.Warning("Could not find Move Turret Node (MoveZone)");
+                    break;
+                }
+
+                if (moveTarget.LocationType == LocationSelection.LocationTypes.Relative
+                    && moveTarget.RelativeTo == LocationSelection.RelativeReferenceTypes.Self
+                    && moveTarget.RelativeDirection == LocationSelection.RelativeDirections.RandomInRadius)
+                {
+                    float minDistance = moveTarget.DistanceMin.Get(null);
+                    float maxDistance = moveTarget.DistanceMax.Get(null);
+
+                    Vector3 currentPos = TurretController.Instance.transform.position;
+                    float angleRad = UnityEngine.Random.Range(0f, 360f) * Mathf.Deg2Rad;
+                    float distance = UnityEngine.Random.Range(minDistance, maxDistance);
+                    Vector3 offset = new Vector3(Mathf.Cos(angleRad) * distance, 0f, Mathf.Sin(angleRad) * distance);
+                    Vector3 targetPos = GridReference.ClampToGridBounds(currentPos + offset, FireMission.Instance.GetGridBounds());
+
+                    TurretController.Instance.MoveTurret(targetPos);
+
+                    foreach (Node node in emergencyMoveCard.Graph.nodes)
+                    {
+                        State_TeleprinterText teleprinterNode = node.TryCast<State_TeleprinterText>();
+                        if (teleprinterNode != null)
+                        {
+                            SubmitTeleprinterReport(teleprinterNode, "");
+                        }
+                    }
+
+                    break;
+                }
+
+                if (moveTarget.LocationType == LocationSelection.LocationTypes.Relative)
+                {
+                    MelonLogger.Warning(
+                        "Emergency Move card uses unsupported Relative config: RelativeTo="
+                        + moveTarget.RelativeTo + " RelativeDirection=" + moveTarget.RelativeDirection);
+                    break;
+                }
+
+                if (moveTarget.LocationType != LocationSelection.LocationTypes.Zone)
+                {
+                    MelonLogger.Warning("Emergency Move card uses unsupported LocationType: " + moveTarget.LocationType);
+                    break;
+                }
+
+                Zone targetZone = null;
+                foreach (Zone zone in MissionManager.Instance.CurrentMission.Zones)
+                {
+                    if (zone.ID == moveTarget.ZoneID)
+                    {
+                        targetZone = zone;
+                        break;
+                    }
+                }
+
+                if (targetZone == null)
+                {
+                    MelonLogger.Warning("Could not find Zone '" + moveTarget.ZoneID + "' for Emergency Move");
+                    break;
+                }
+
+                Il2CppSystem.Random moveRand = new();
+                GridReference moveGridRef = targetZone.GetRandomGridPosition(moveRand);
+                Vector3 movePos = moveGridRef.GetLocation(FireMission.Instance.GetGridBounds());
+
+                TurretController.Instance.MoveTurret(movePos);
+
+                foreach (Node node in emergencyMoveCard.Graph.nodes)
+                {
+                    State_TeleprinterText teleprinterNode = node.TryCast<State_TeleprinterText>();
+                    if (teleprinterNode != null)
+                    {
+                        SubmitTeleprinterReport(teleprinterNode, "");
+                    }
+                }
+
+                break;
+            }
         }
     }
 
