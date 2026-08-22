@@ -90,18 +90,40 @@ public class ItemReceiver
         }
     }
 
+    // Some vanilla IDs carry stray leading/trailing whitespaces
+    // (like "CYANShell ", "WPShell ") - Since I use the trimmed version, getting the in-game Ids throws an error on dict lookup
+    private static PunchcardDefinitionV2 GetPunchcardDefinition(string id)
+    {
+        Dictionary<string, PunchcardDefinitionV2> allDefinitions = RequisitionConsoleManager.Instance.AllDefinitions;
+
+        if (allDefinitions.TryGetValue(id, out PunchcardDefinitionV2 exactMatch))
+        {
+            return exactMatch;
+        }
+
+        foreach (KeyValuePair<string, PunchcardDefinitionV2> entry in allDefinitions)
+        {
+            if (entry.Key.Trim() == id)
+            {
+                return entry.Value;
+            }
+        }
+
+        throw new System.Collections.Generic.KeyNotFoundException("No PunchcardDefinitionV2 found for '" + id);
+    }
+
     private void HandlePunchcardItem(string punchcardName)
     {
         MelonLogger.Msg("Processing Punchcard: " + punchcardName);
-        
+
         // guard against duplicate punchcards
         if (ProgressionManager.Instance.IsCardUnlocked(punchcardName))
         {
             MelonLogger.Msg("Punchcard already unlocked");
             return;
         }
-        
-        PunchcardDefinitionV2 punchcard = RequisitionConsoleManager.Instance.AllDefinitions[punchcardName];
+
+        PunchcardDefinitionV2 punchcard = GetPunchcardDefinition(punchcardName);
         List<PunchcardDefinitionV2> punchcardList = new();
         punchcardList.Add(punchcard);
 
@@ -138,7 +160,7 @@ public class ItemReceiver
             }
             case "SpawnSpotter":
             {
-                PunchcardDefinitionV2 spotterCard =  RequisitionConsoleManager.Instance.AllDefinitions["Spotter"];
+                PunchcardDefinitionV2 spotterCard = GetPunchcardDefinition("Spotter");
 
                 string spotterId = null;
                 EntityRoles spotterRole = EntityRoles.Ally;
@@ -207,7 +229,7 @@ public class ItemReceiver
             }
             case "SpawnLocationReport":
             {
-                PunchcardDefinitionV2 convoyCard =  RequisitionConsoleManager.Instance.AllDefinitions["LocationReport"];
+                PunchcardDefinitionV2 convoyCard = GetPunchcardDefinition("LocationReport");
 
                 string convoyId = null;
                 EntityRoles convoyRole = EntityRoles.Ally;
@@ -306,7 +328,7 @@ public class ItemReceiver
         {
             case "TrapFillMagazine":
             {
-                PunchcardDefinitionV2 starShellCard =  RequisitionConsoleManager.Instance.AllDefinitions["STARShell"];
+                PunchcardDefinitionV2 starShellCard = GetPunchcardDefinition("STARShell");
                 ShellDefinition shell = null;
                 foreach (Node node in starShellCard.Graph.nodes)
                 {
@@ -350,7 +372,7 @@ public class ItemReceiver
             }
             case "TrapEmergencyMove":
             {
-                PunchcardDefinitionV2 emergencyMoveCard = RequisitionConsoleManager.Instance.AllDefinitions["MoveZone"];
+                PunchcardDefinitionV2 emergencyMoveCard = GetPunchcardDefinition("MoveZone");
 
                 LocationSelection moveTarget = null;
                 foreach (Node node in emergencyMoveCard.Graph.nodes)

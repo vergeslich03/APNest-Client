@@ -38,9 +38,36 @@ public class LookupTables
         }
         if (tableType == TableType.MedalLocations)
         {
-            MedalNameToAPLocationNameTable.Add("Hospital False Flag-shots_fired_1to3-Bronze", "Mission 1: Calibration Fire - OE Bronze");
-            MedalNameToAPLocationNameTable.Add("Hospital False Flag-shots_fired_1to3-Silver", "Mission 1: Calibration Fire - OE Silver");
-            MedalNameToAPLocationNameTable.Add("Hospital False Flag-shots_fired_1to3-Gold", "Mission 1: Calibration Fire - OE Gold");
+            MedalNameToAPLocationNameTable.Add("Hospital False Flag-Ordnance Efficiency Laurel-Bronze", "Mission 1: Calibration Fire - OE Bronze");
+            MedalNameToAPLocationNameTable.Add("Hospital False Flag-Ordnance Efficiency Laurel-Silver", "Mission 1: Calibration Fire - OE Silver");
+            MedalNameToAPLocationNameTable.Add("Hospital False Flag-Ordnance Efficiency Laurel-Gold", "Mission 1: Calibration Fire - OE Gold");
+            MedalNameToAPLocationNameTable.Add("ceremony and HCHE-Ordnance Efficiency Citation-Bronze", "Mission 2: Fire and Light - OE Bronze");
+            MedalNameToAPLocationNameTable.Add("ceremony and HCHE-Ordnance Efficiency Citation-Silver", "Mission 2: Fire and Light - OE Silver");
+            MedalNameToAPLocationNameTable.Add("ceremony and HCHE-Ordnance Efficiency Citation-Gold", "Mission 2: Fire and Light - OE Gold");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Measured Fire Star-Bronze", "Mission 3: Liberation - MF Bronze");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Measured Fire Star-Silver", "Mission 3: Liberation - MF Silver");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Measured Fire Star-Gold", "Mission 3: Liberation - MF Gold");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Marksman's Cross-Bronze", "Mission 3: Liberation - MC Bronze");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Marksman's Cross-Silver", "Mission 3: Liberation - MC Silver");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Marksman's Cross-Gold", "Mission 3: Liberation - MC Gold");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Unbroken Volley Medal-Bronze", "Mission 3: Liberation - UV Bronze");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Unbroken Volley Medal-Silver", "Mission 3: Liberation - UV Silver");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Unbroken Volley Medal-Gold", "Mission 3: Liberation - UV Gold");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Austere Service Medal-Bronze", "Mission 3: Liberation - AS Bronze");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Austere Service Medal-Silver", "Mission 3: Liberation - AS Silver");
+            MedalNameToAPLocationNameTable.Add("Insurrections and Requisitions-Austere Service Medal-Gold", "Mission 3: Liberation - AS Gold");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-Salvo Commendation-Bronze", "Mission 4: Counter-Battery - SC Bronze");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-Salvo Commendation-Silver", "Mission 4: Counter-Battery - SC Silver");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-Salvo Commendation-Gold", "Mission 4: Counter-Battery - SC Gold");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-Counter-Battery Commendation-Bronze", "Mission 4: Counter-Battery - CB Bronze");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-Counter-Battery Commendation-Silver", "Mission 4: Counter-Battery - CB Silver");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-Counter-Battery Commendation-Gold", "Mission 4: Counter-Battery - CB Gold");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-Counter-Austere Service Medal-Bronze", "Mission 4: Counter-Battery - AS Bronze");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-Counter-Austere Service Medal-Silver", "Mission 4: Counter-Battery - AS Silver");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-Counter-Austere Service Medal-Gold", "Mission 4: Counter-Battery - AS Gold");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-No Quarter Cross-Bronze", "Mission 4: Counter-Battery - AS Bronze");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-No Quarter Cross-Silver", "Mission 4: Counter-Battery - AS Silver");
+            MedalNameToAPLocationNameTable.Add("Artillery Introduction-No Quarter Cross-Gold", "Mission 4: Counter-Battery - AS Gold");
         }
         if (tableType == TableType.Items)
         {
