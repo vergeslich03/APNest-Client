@@ -21,6 +21,7 @@ namespace APNestClient
             _itemReceiver = new ItemReceiver();
 
             MissionCompleteChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
+            MedalAchievedChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
         }
 
         public override void OnGUI()

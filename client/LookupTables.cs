@@ -5,17 +5,19 @@ namespace APNestClient;
 public class LookupTables
 {
     public Dictionary<string, string> MissionNameToAPLocationNameTable = new();
-    public Dictionary<string, string> ApItemNameToGameId = new();
+    public Dictionary<string, string> MedalNameToAPLocationNameTable = new();
+    public Dictionary<string, string> ApItemNameToGameIdTable = new();
     
     public enum TableType
     {
-        Locations,
+        MissionLocations,
+        MedalLocations,
         Items,
     }
 
     public LookupTables(TableType tableType)
     {
-        if (tableType == TableType.Locations)
+        if (tableType == TableType.MissionLocations)
         {
             MissionNameToAPLocationNameTable.Add("Hospital False Flag", "Mission 1: Calibration Fire");
             MissionNameToAPLocationNameTable.Add("ceremony and HCHE", "Mission 2: Fire and Light");
@@ -34,44 +36,50 @@ public class LookupTables
             MissionNameToAPLocationNameTable.Add("WhiteShells", "Mission 15: White Shells");
             return;
         }
+        if (tableType == TableType.MedalLocations)
+        {
+            MedalNameToAPLocationNameTable.Add("Hospital False Flag-shots_fired_1to3-Bronze", "Mission 1: Calibration Fire - OE Bronze");
+            MedalNameToAPLocationNameTable.Add("Hospital False Flag-shots_fired_1to3-Silver", "Mission 1: Calibration Fire - OE Silver");
+            MedalNameToAPLocationNameTable.Add("Hospital False Flag-shots_fired_1to3-Gold", "Mission 1: Calibration Fire - OE Gold");
+        }
         if (tableType == TableType.Items)
         {
             // progression
-            ApItemNameToGameId.Add("Punchcard - HE Shell", "HEShell");
-            ApItemNameToGameId.Add("Punchcard - STAR Shell", "STARShell");
-            ApItemNameToGameId.Add("Punchcard - AP Shell", "APShell");
-            ApItemNameToGameId.Add("Punchcard - SMK Shell", "SMOKEShell");
-            ApItemNameToGameId.Add("Punchcard - TEAR Shell", "TEARShell");
-            ApItemNameToGameId.Add("Punchcard - INCN Shell", "INCNShell");
-            ApItemNameToGameId.Add("Punchcard - HCHE Shell", "HCHEShell");
-            ApItemNameToGameId.Add("Punchcard - DRIL Shell", "DRILShell");
-            ApItemNameToGameId.Add("Punchcard - LE Shell", "LEShell");
-            ApItemNameToGameId.Add("Punchcard - PHGN Shell", "PHGNShell");
-            ApItemNameToGameId.Add("Punchcard - WP Shell", "WPShell");
-            ApItemNameToGameId.Add("Punchcard - PCLM Shell", "PCLMShell");
-            ApItemNameToGameId.Add("Punchcard - APHE Shell", "APHEShell");
-            ApItemNameToGameId.Add("Punchcard - FLCH Shell", "FLCHShell");
-            ApItemNameToGameId.Add("Punchcard - PRPG Shell", "PRPGShell");
-            ApItemNameToGameId.Add("Punchcard - THRM Shell", "THRMShell");
-            ApItemNameToGameId.Add("Punchcard - ATMC Shell", "ATMCShell");
-            ApItemNameToGameId.Add("Punchcard - CYAN Shell", "CYANShell");
-            ApItemNameToGameId.Add("Punchcard - EQKE Shell", "EQKEShell");
-            ApItemNameToGameId.Add("Punchcard - Powder Charges", "PowderCharges");
-            ApItemNameToGameId.Add("Punchcard - Scout Plane", "ScoutPlane");
-            ApItemNameToGameId.Add("Punchcard - Emergency Move", "MoveZone");
+            ApItemNameToGameIdTable.Add("Punchcard - HE Shell", "HEShell");
+            ApItemNameToGameIdTable.Add("Punchcard - STAR Shell", "STARShell");
+            ApItemNameToGameIdTable.Add("Punchcard - AP Shell", "APShell");
+            ApItemNameToGameIdTable.Add("Punchcard - SMK Shell", "SMOKEShell");
+            ApItemNameToGameIdTable.Add("Punchcard - TEAR Shell", "TEARShell");
+            ApItemNameToGameIdTable.Add("Punchcard - INCN Shell", "INCNShell");
+            ApItemNameToGameIdTable.Add("Punchcard - HCHE Shell", "HCHEShell");
+            ApItemNameToGameIdTable.Add("Punchcard - DRIL Shell", "DRILShell");
+            ApItemNameToGameIdTable.Add("Punchcard - LE Shell", "LEShell");
+            ApItemNameToGameIdTable.Add("Punchcard - PHGN Shell", "PHGNShell");
+            ApItemNameToGameIdTable.Add("Punchcard - WP Shell", "WPShell");
+            ApItemNameToGameIdTable.Add("Punchcard - PCLM Shell", "PCLMShell");
+            ApItemNameToGameIdTable.Add("Punchcard - APHE Shell", "APHEShell");
+            ApItemNameToGameIdTable.Add("Punchcard - FLCH Shell", "FLCHShell");
+            ApItemNameToGameIdTable.Add("Punchcard - PRPG Shell", "PRPGShell");
+            ApItemNameToGameIdTable.Add("Punchcard - THRM Shell", "THRMShell");
+            ApItemNameToGameIdTable.Add("Punchcard - ATMC Shell", "ATMCShell");
+            ApItemNameToGameIdTable.Add("Punchcard - CYAN Shell", "CYANShell");
+            ApItemNameToGameIdTable.Add("Punchcard - EQKE Shell", "EQKEShell");
+            ApItemNameToGameIdTable.Add("Punchcard - Powder Charges", "PowderCharges");
+            ApItemNameToGameIdTable.Add("Punchcard - Scout Plane", "ScoutPlane");
+            ApItemNameToGameIdTable.Add("Punchcard - Emergency Move", "MoveZone");
             // useful
-            ApItemNameToGameId.Add("Punchcard - Spotter", "Spotter");
-            ApItemNameToGameId.Add("Requisition - Spotter", "SpawnSpotter");
-            ApItemNameToGameId.Add("Punchcard - Location Report", "LocationReport");
-            ApItemNameToGameId.Add("Requisition - Location Report", "SpawnLocationReport");
+            ApItemNameToGameIdTable.Add("Punchcard - Spotter", "Spotter");
+            ApItemNameToGameIdTable.Add("Requisition - Spotter", "SpawnSpotter");
+            ApItemNameToGameIdTable.Add("Punchcard - Location Report", "LocationReport");
+            ApItemNameToGameIdTable.Add("Requisition - Location Report", "SpawnLocationReport");
             //filler
-            ApItemNameToGameId.Add("Requisition - Powder Charges", "SpawnPowderCharges");
-            ApItemNameToGameId.Add("Requisition - Requisition Points", "SpawnRequisitionPoints");
+            ApItemNameToGameIdTable.Add("Requisition - Powder Charges", "SpawnPowderCharges");
+            ApItemNameToGameIdTable.Add("Requisition - Requisition Points", "SpawnRequisitionPoints");
             // traps
-            ApItemNameToGameId.Add("Trap - Emergency Move", "TrapEmergencyMove");
-            ApItemNameToGameId.Add("Trap - Magazine Filler", "TrapFillMagazine");
-            ApItemNameToGameId.Add("Trap - Sabotage", "TrapSabotage");
-            ApItemNameToGameId.Add("Trap - Counter-Battery", "TrapCounterBattery");
+            ApItemNameToGameIdTable.Add("Trap - Emergency Move", "TrapEmergencyMove");
+            ApItemNameToGameIdTable.Add("Trap - Magazine Filler", "TrapFillMagazine");
+            ApItemNameToGameIdTable.Add("Trap - Sabotage", "TrapSabotage");
+            ApItemNameToGameIdTable.Add("Trap - Counter-Battery", "TrapCounterBattery");
             return;
         }
     }

@@ -38,7 +38,7 @@ public class ItemReceiver
     {
         try
         {
-            string itemName = _lookupTable.ApItemNameToGameId[apItemName];
+            string itemName = _lookupTable.ApItemNameToGameIdTable[apItemName];
 
             if (itemName.StartsWith("Spawn"))
             {

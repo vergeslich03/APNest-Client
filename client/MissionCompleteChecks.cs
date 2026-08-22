@@ -10,12 +10,12 @@ namespace APNestClient;
 public class MissionCompleteChecks
 {
     public static event Action<string> LocationCompleted;
+    private static Dictionary<string, string> _lookupTable = new LookupTables(LookupTables.TableType.MissionLocations).MissionNameToAPLocationNameTable;
     
     static void Postfix(MissionManager __instance)
     {
         var currentMission = __instance.CurrentMission.MissionID;
         MelonLogger.Msg("MissionCompleteCheck: " + currentMission);
-        Dictionary<string, string> lookupTable = new LookupTables(LookupTables.TableType.Locations).MissionNameToAPLocationNameTable;
-        LocationCompleted?.Invoke(lookupTable[currentMission]);
+        LocationCompleted?.Invoke(_lookupTable[currentMission]);
     }
 }
