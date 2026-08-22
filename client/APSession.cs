@@ -67,6 +67,11 @@ public class APSession
 
     public void Connect(string host, int port, string slotName, string password)
     {
+        if (_connectionState == APConnectionState.Connected)
+        {
+            return;
+        }
+        
         _connectionState = APConnectionState.Connecting;
         try
         {
