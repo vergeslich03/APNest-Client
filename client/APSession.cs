@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using MelonLoader;
 using MelonLoader.Utils;
 using Archipelago.MultiClient.Net;
@@ -20,12 +21,15 @@ public enum APConnectionState
 
 public class APSession
 {
-    private readonly string _dataDirectory = Path.Combine(MelonEnvironment.UserDataDirectory, "APNestClient");
+    public static readonly string DataDirectory = Path.Combine(MelonEnvironment.UserDataDirectory, "APNestClient");
     private readonly string _locationsQueueFile;
-    private static object _locationQueueLock = new object();
-
+    private readonly string _itemIndexFile;
     private readonly string _seedFile;
-    
+
+    private static object _locationQueueLock = new object();
+    private static object _itemIndexLock = new object();
+
+
     private ConcurrentQueue<string> _queue = new();
     private ConcurrentQueue<string> _pendingItemNames = new();
 
@@ -33,17 +37,20 @@ public class APSession
     private string _loginFailureReason;
 
     private ArchipelagoSession _session;
+
+    private int _lastItemIndexHandled = -1;
     
     public static event Action<string> ItemReceived;
 
     public APSession()
     {
-        _locationsQueueFile = Path.Combine(_dataDirectory, "LocationsQueue.txt");
-        _seedFile = Path.Combine(_dataDirectory, "Seed.txt");
+        _locationsQueueFile = Path.Combine(DataDirectory, "LocationsQueue.txt");
+        _itemIndexFile = Path.Combine(DataDirectory, "ItemIndex.txt");
+        _seedFile = Path.Combine(DataDirectory, "Seed.txt");
 
-        if (!Directory.Exists(_dataDirectory))
+        if (!Directory.Exists(DataDirectory))
         {
-            Directory.CreateDirectory(_dataDirectory);
+            Directory.CreateDirectory(DataDirectory);
         }
 
         if (!File.Exists(_locationsQueueFile))
@@ -108,6 +115,7 @@ public class APSession
                 List<string> tmpList = new();
                 tmpList.Add(currentSeed);
                 File.WriteAllLines(_seedFile, tmpList);
+                File.Delete(_itemIndexFile);
                 ProgressionManager.Instance.ResetAllUserProgress();
             }
             
@@ -125,11 +133,28 @@ public class APSession
             }
             
             MelonLogger.Msg("Location Check Queue flushed.");
+
+            try
+            {
+                Int32.TryParse(File.ReadAllLines(_itemIndexFile)[0], out _lastItemIndexHandled);
+            }
+            catch (FileNotFoundException)
+            {
+            }
             
 
+            int itemCounter = 0;
             while (_session.Items.Any())
             {
+                if (itemCounter <= _lastItemIndexHandled)
+                {
+                    _session.Items.DequeueItem();
+                    itemCounter++;
+                    continue;
+                }
+                
                 ReceiveItem();
+                itemCounter++;
             }
             
             MelonLogger.Msg("Pending Items flushed.");
@@ -211,6 +236,7 @@ public class APSession
     public void ReceiveItem()
     {
         string itemName = GetApItemName(_session.Items.DequeueItem().ItemId);
+        IncreaseHandledItemIndex();
         _pendingItemNames.Enqueue(itemName);
     }
 
@@ -219,6 +245,17 @@ public class APSession
         while (_pendingItemNames.TryDequeue(out string itemName))
         {
             ItemReceived?.Invoke(itemName);
+        }
+    }
+
+    private void IncreaseHandledItemIndex()
+    {
+        lock (_itemIndexLock)
+        {
+            _lastItemIndexHandled++;
+            List<string> tmpList = new List<string>();
+            tmpList.Add(_lastItemIndexHandled.ToString());
+            File.WriteAllLines(_itemIndexFile, tmpList);
         }
     }
 

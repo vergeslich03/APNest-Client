@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.IO;
 using Il2Cpp;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppLocalisation;
@@ -13,6 +14,9 @@ namespace APNestClient;
 
 public class ItemReceiver
 {
+    private string _itemQueueFile;
+    private object _itemQueueLock = new();
+    
     private LookupTables _lookupTable;
     
     private ConcurrentQueue<string> _itemQueue = new();
@@ -22,8 +26,20 @@ public class ItemReceiver
 
     public ItemReceiver()
     {
+        _itemQueueFile = Path.Combine(APSession.DataDirectory, "ItemQueue.txt");
+        
         _lookupTable = new LookupTables(LookupTables.TableType.Items);
         APSession.ItemReceived += itemName => ProcessAPItem(itemName);
+
+        if (!File.Exists(_itemQueueFile))
+        {
+            File.Create(_itemQueueFile).Close();
+        }
+
+        foreach (string queuedItem in File.ReadAllLines(_itemQueueFile))
+        {
+            _itemQueue.Enqueue(queuedItem);
+        }
     }
 
     private void DrainQueue()
@@ -31,6 +47,11 @@ public class ItemReceiver
         while (_itemQueue.TryDequeue(out string itemName))
         {
             ProcessAPItem(itemName);
+        }
+
+        lock (_itemQueueLock)
+        {
+            File.WriteAllLines(_itemQueueFile, _itemQueue);
         }
     }
 
@@ -62,6 +83,10 @@ public class ItemReceiver
         catch (NullReferenceException)
         {
             _itemQueue.Enqueue(apItemName);
+            lock (_itemQueueLock)
+            {
+                File.WriteAllLines(_itemQueueFile, _itemQueue);
+            }
         }
     }
 
