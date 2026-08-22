@@ -418,6 +418,58 @@ public class ItemReceiver
 
                 break;
             }
+            case "TrapCounterBattery":
+            {
+                CounterBatteryTimer cbtInstance = CounterBatteryTimer.Instance;
+                
+                List<Zone> enemyZones = new();
+                foreach (Zone zone in MissionManager.Instance.CurrentMission.Zones)
+                {
+                    if (zone.Role == EntityRoles.Enemy)
+                    {
+                        enemyZones.Add(zone);
+                    }
+                }
+
+                if (enemyZones.Count == 0)
+                {
+                    MelonLogger.Warning("No Enemy zone found, falling back to Zones[0]");
+                    enemyZones.Add(MissionManager.Instance.CurrentMission.Zones[0]);
+                }
+                
+                Il2CppSystem.Random spawnRand = new();
+                Zone spawnZone = enemyZones[spawnRand.Next(enemyZones.Count)];
+                GridReference gridRef = spawnZone.GetRandomGridPosition(spawnRand);
+                Vector3 pos = gridRef.GetLocation(FireMission.Instance.GetGridBounds());
+
+                MapEntity artyEntity = FireMission.Instance.CreateMapEntity(
+                    "APArtillery",
+                    new TextIdentifier("APArtillery"),
+                    0,
+                    pos,
+                    EntityRoles.Artillery | EntityRoles.Enemy,
+                    1,
+                    0,
+                    1,
+                    MapEntityStates.None,
+                    "Enemy Field Artillery"
+                );
+                FireMission.Instance.RegisterMapEntity(artyEntity);
+
+                List<string> cbtLines = new List<string>();
+                cbtLines.Add("--- COUNTER BATTERY ---");
+                cbtLines.Add("ENEMY ARTILLERY SPOTTED IN SECTOR " + gridRef.Location);
+
+                Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Secondary)
+                    .SubmitLines(
+                        Guid.NewGuid().ToString(),
+                        cbtLines.Cast<IEnumerable<string>>(),
+                        null,
+                        false
+                    );
+                
+                break;
+            }
         }
     }
 
