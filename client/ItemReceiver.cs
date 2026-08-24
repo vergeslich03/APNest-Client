@@ -14,20 +14,23 @@ namespace APNestClient;
 
 public class ItemReceiver
 {
+    private const float CBT_DEFAULT_TIME = 60f;
+    
     private string _itemQueueFile;
     private object _itemQueueLock = new();
-    
+
     private LookupTables _lookupTable;
-    
+
     private ConcurrentQueue<string> _itemQueue = new();
     private bool _missionChangedSubscribed;
     private volatile bool _pendingMissionLoad;
     private volatile string _pendingMissionId;
+    private float _lastCBTPrint;
 
     public ItemReceiver()
     {
         _itemQueueFile = Path.Combine(APSession.DataDirectory, "ItemQueue.txt");
-        
+
         _lookupTable = new LookupTables(LookupTables.TableType.Items);
         APSession.ItemReceived += itemName => ProcessAPItem(itemName);
 
@@ -44,7 +47,8 @@ public class ItemReceiver
 
     private void DrainQueue()
     {
-        while (_itemQueue.TryDequeue(out string itemName))
+        int count = _itemQueue.Count;
+        for (int i = 0; i < count && _itemQueue.TryDequeue(out string itemName); i++)
         {
             ProcessAPItem(itemName);
         }
@@ -467,8 +471,24 @@ public class ItemReceiver
             }
             case "TrapCounterBattery":
             {
-                CounterBatteryTimer cbtInstance = CounterBatteryTimer.Instance;
+                // bail out on those two missions, since they are not built for CB and do not have the ordnance for it.
+                if (MissionManager.Instance.CurrentMission.MissionID == "Hospital False Flag" ||
+                    MissionManager.Instance.CurrentMission.MissionID == "ceremony and HCHE")
+                {
+                    throw new NullReferenceException("Mission 1 or 2 are not completable with CBT");
+                }
                 
+                // Not every mission has a CounterBatteryTimer instance, it's only instantiated by
+                // the mission's own State_StartTimer node once that node's trigger fires.
+                // Interestingly enough, mission 1 and 3 don't have the node at all, while mission 2 does for some reason
+                // (maybe mission 2 was originally planned as the CB introduction? Who knows).
+                // This method spawns it ourselves if the node exists but hasn't fired yet.
+                // if the game's own trigger fires later in the same mission,
+                // CBTimerDuplicationHandler (Harmony patch on State_StartTimer.OnEnter) destroys whichever instance
+                // goes stale so only one timer survives.
+                CounterBatteryTimer cbtInstance = GetOrSpawnCbtTimer();
+                cbtInstance.AddTime(CBT_DEFAULT_TIME);
+
                 List<Zone> enemyZones = new();
                 foreach (Zone zone in MissionManager.Instance.CurrentMission.Zones)
                 {
@@ -503,18 +523,41 @@ public class ItemReceiver
                 );
                 FireMission.Instance.RegisterMapEntity(artyEntity);
 
-                List<string> cbtLines = new List<string>();
-                cbtLines.Add("--- COUNTER BATTERY ---");
-                cbtLines.Add("ENEMY ARTILLERY SPOTTED IN SECTOR " + gridRef.Location);
+                List<string> cbtLinesPrimary = new List<string>();
+                List<string> cbtLinesSecondary = new List<string>();
+                
+                cbtLinesPrimary.Add("COUNTER BATTERY");
+                cbtLinesPrimary.Add("COUNTER BATTERY");
+                cbtLinesPrimary.Add("COUNTER BATTERY");
+                
+                cbtLinesSecondary.Add("------------------------------------");
+                cbtLinesSecondary.Add("ENEMY ARTILLERY SPOTTED IN SECTOR " + gridRef.Location);
+                cbtLinesSecondary.Add("------------------------------------");
 
-                Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Secondary)
+                Teleprinter teleprinterPrimary = Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Primary);
+                Teleprinter teleprinterSecondary = Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Secondary);
+                
+                teleprinterPrimary.SignalAlarm(Teleprinter.TeleprinterAlarmState.High);
+                teleprinterSecondary.SignalAlarm(Teleprinter.TeleprinterAlarmState.High);
+
+                teleprinterPrimary
                     .SubmitLines(
                         Guid.NewGuid().ToString(),
-                        cbtLines.Cast<IEnumerable<string>>(),
+                        cbtLinesPrimary.Cast<IEnumerable<string>>(),
+                        null,
+                        false
+                    );
+                teleprinterSecondary
+                    .SubmitLines(
+                        Guid.NewGuid().ToString(),
+                        cbtLinesSecondary.Cast<IEnumerable<string>>(),
                         null,
                         false
                     );
                 
+                cbtInstance.StartTimer();
+                _lastCBTPrint = CBT_DEFAULT_TIME;
+
                 break;
             }
         }
@@ -548,5 +591,116 @@ public class ItemReceiver
 
         _pendingMissionLoad = false;
         DrainQueue();
+    }
+
+    // Returns the live CounterBatteryTimer for the current mission, spawning it if the mission has a
+    // State_StartTimer node but its in-mission trigger hasn't fired yet. Returns null
+    // if there's no such node at all this mission (e.g. missions 1/3).
+    private CounterBatteryTimer GetOrSpawnCbtTimer()
+    {
+        if (CounterBatteryTimer.Instance != null)
+        {
+            return CounterBatteryTimer.Instance;
+        }
+
+        if (MissionManager.Instance == null || MissionManager.Instance.CurrentMission == null)
+        {
+            return null;
+        }
+
+        State_StartTimer startTimerNode = null;
+        foreach (Node node in MissionManager.Instance.CurrentMission.nodes)
+        {
+            startTimerNode = node.TryCast<State_StartTimer>();
+            if (startTimerNode != null)
+            {
+                break;
+            }
+        }
+
+        // TEMPORARY test-only fallback: mission 3 has no State_StartTimer node of its own.
+        // Borrow one from another mission's graph via the campaign's OperationGraph, to
+        // test whether the CB consequence-on-expiry actually fires in a scene that
+        // wasn't designed to have it. Remove or keep permanently based on the result.
+        if (startTimerNode == null && MissionManager.Instance.CurrentOperation != null)
+        {
+            foreach (MissionNode missionNode in MissionManager.Instance.CurrentOperation.Missions)
+            {
+                if (missionNode.Mission == null || missionNode.Mission == MissionManager.Instance.CurrentMission)
+                {
+                    continue;
+                }
+
+                foreach (Node node in missionNode.Mission.nodes)
+                {
+                    startTimerNode = node.TryCast<State_StartTimer>();
+                    if (startTimerNode != null)
+                    {
+                        break;
+                    }
+                }
+
+                if (startTimerNode != null)
+                {
+                    MelonLogger.Msg("GetOrSpawnCbtTimer: borrowing State_StartTimer from mission '" + missionNode.Mission.MissionID + "'");
+                    break;
+                }
+            }
+        }
+
+        if (startTimerNode == null || startTimerNode.Prefab_BatteryTimer == null)
+        {
+            return null;
+        }
+
+        CounterBatteryTimer spawned = UnityEngine.Object.Instantiate(startTimerNode.Prefab_BatteryTimer);
+        spawned.Init(startTimerNode.InitalTime);
+        return spawned;
+    }
+
+    public void PrintCBTimeRemaining()
+    {
+        try
+        {
+            CounterBatteryTimer timer = CounterBatteryTimer.Instance;
+            if (timer.IsRunning)
+            {
+                Teleprinter teleprinterSecondary = Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Secondary);
+                
+                List<string> cbtLinesSecondary = new List<string>();
+                
+                cbtLinesSecondary.Add("REMAINING TIME UNTIL RETALIATION STRIKE: " + Math.Round(timer.TimeRemaining) + "s");
+                
+                if (_lastCBTPrint - timer.TimeRemaining > 10 && timer.TimeRemaining < 30)
+                {
+                    teleprinterSecondary.SignalAlarm(Teleprinter.TeleprinterAlarmState.High);
+                    teleprinterSecondary
+                        .SubmitLines(
+                            Guid.NewGuid().ToString(),
+                            cbtLinesSecondary.Cast<IEnumerable<string>>(),
+                            null,
+                            false
+                        );
+                    _lastCBTPrint = timer.TimeRemaining;
+                }
+                
+                if (_lastCBTPrint - timer.TimeRemaining > 30 &&  timer.TimeRemaining >= 30)
+                {
+                    teleprinterSecondary.SignalAlarm(Teleprinter.TeleprinterAlarmState.Low);
+                    teleprinterSecondary
+                        .SubmitLines(
+                            Guid.NewGuid().ToString(),
+                            cbtLinesSecondary.Cast<IEnumerable<string>>(),
+                            null,
+                            false
+                        );
+                    _lastCBTPrint = timer.TimeRemaining;
+                }
+            }
+        }
+        catch (NullReferenceException)
+        {
+            return;
+        }
     }
 }
