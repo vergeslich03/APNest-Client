@@ -2,19 +2,20 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using Il2Cpp;
-using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppLocalisation;
 using Il2CppSleepyNodes;
 using Il2CppSystem.Collections.Generic;
 using MelonLoader;
 using UnityEngine;
+using KeyNotFoundException = System.Collections.Generic.KeyNotFoundException;
 using Random = System.Random;
 
 namespace APNestClient;
 
 public class ItemReceiver
 {
-    private const float CBT_DEFAULT_TIME = 60f;
+    private const float CBT_DEFAULT_TIME = 300f;
+    public const string CB_DEFAULT_ID = "APArtillery";
     
     private string _itemQueueFile;
     private object _itemQueueLock = new();
@@ -25,7 +26,6 @@ public class ItemReceiver
     private bool _missionChangedSubscribed;
     private volatile bool _pendingMissionLoad;
     private volatile string _pendingMissionId;
-    private float _lastCBTPrint;
 
     public ItemReceiver()
     {
@@ -79,7 +79,7 @@ public class ItemReceiver
 
             HandlePunchcardItem(itemName);
         }
-        catch (System.Collections.Generic.KeyNotFoundException)
+        catch (KeyNotFoundException)
         {
             MelonLogger.Error("Unknown Item '" + apItemName + "'");
             return;
@@ -510,7 +510,7 @@ public class ItemReceiver
                 Vector3 pos = gridRef.GetLocation(FireMission.Instance.GetGridBounds());
 
                 MapEntity artyEntity = FireMission.Instance.CreateMapEntity(
-                    "APArtillery",
+                    CB_DEFAULT_ID,
                     new TextIdentifier("APArtillery"),
                     0,
                     pos,
@@ -556,7 +556,6 @@ public class ItemReceiver
                     );
                 
                 cbtInstance.StartTimer();
-                _lastCBTPrint = CBT_DEFAULT_TIME;
 
                 break;
             }
@@ -618,10 +617,7 @@ public class ItemReceiver
             }
         }
 
-        // TEMPORARY test-only fallback: mission 3 has no State_StartTimer node of its own.
-        // Borrow one from another mission's graph via the campaign's OperationGraph, to
-        // test whether the CB consequence-on-expiry actually fires in a scene that
-        // wasn't designed to have it. Remove or keep permanently based on the result.
+        // Mission 3 has no State_StartTimer node of its own, so I borrow one from another mission's graph
         if (startTimerNode == null && MissionManager.Instance.CurrentOperation != null)
         {
             foreach (MissionNode missionNode in MissionManager.Instance.CurrentOperation.Missions)
@@ -655,52 +651,20 @@ public class ItemReceiver
 
         CounterBatteryTimer spawned = UnityEngine.Object.Instantiate(startTimerNode.Prefab_BatteryTimer);
         spawned.Init(startTimerNode.InitalTime);
-        return spawned;
-    }
 
-    public void PrintCBTimeRemaining()
-    {
-        try
+        // Missions without a native CB encounter (e.g. mission 3) still have a static,
+        // closed "Timer Hatch" prop baked into the base scene decorating the empty mount.
+        // My spawned prefab brings its own hatch to the same slot, so disable the static one to stop the two from
+        // overlapping/clipping into each other.
+        foreach (Transform t in UnityEngine.Object.FindObjectsOfType<Transform>(true))
         {
-            CounterBatteryTimer timer = CounterBatteryTimer.Instance;
-            if (timer.IsRunning)
+            if (t.gameObject.name == "Timer Hatch" && t.parent == null)
             {
-                Teleprinter teleprinterSecondary = Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Secondary);
-                
-                List<string> cbtLinesSecondary = new List<string>();
-                
-                cbtLinesSecondary.Add("REMAINING TIME UNTIL RETALIATION STRIKE: " + Math.Round(timer.TimeRemaining) + "s");
-                
-                if (_lastCBTPrint - timer.TimeRemaining > 10 && timer.TimeRemaining < 30)
-                {
-                    teleprinterSecondary.SignalAlarm(Teleprinter.TeleprinterAlarmState.High);
-                    teleprinterSecondary
-                        .SubmitLines(
-                            Guid.NewGuid().ToString(),
-                            cbtLinesSecondary.Cast<IEnumerable<string>>(),
-                            null,
-                            false
-                        );
-                    _lastCBTPrint = timer.TimeRemaining;
-                }
-                
-                if (_lastCBTPrint - timer.TimeRemaining > 30 &&  timer.TimeRemaining >= 30)
-                {
-                    teleprinterSecondary.SignalAlarm(Teleprinter.TeleprinterAlarmState.Low);
-                    teleprinterSecondary
-                        .SubmitLines(
-                            Guid.NewGuid().ToString(),
-                            cbtLinesSecondary.Cast<IEnumerable<string>>(),
-                            null,
-                            false
-                        );
-                    _lastCBTPrint = timer.TimeRemaining;
-                }
+                t.gameObject.SetActive(false);
+                break;
             }
         }
-        catch (NullReferenceException)
-        {
-            return;
-        }
+
+        return spawned;
     }
 }

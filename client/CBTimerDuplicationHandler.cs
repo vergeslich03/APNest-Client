@@ -31,9 +31,11 @@ public class CBTimerDuplicationHandler
 
     public static void Postfix(Il2CppSleepyNodes.State_StartTimer __instance)
     {
-        if (_cbTimer != CounterBatteryTimer.Instance)
+        if (_cbTimer != null && _cbTimer != CounterBatteryTimer.Instance)
         {
             UnityEngine.Object.Destroy(_cbTimer.gameObject);
         }
+
+        _cbTimer = null;
     }
 }

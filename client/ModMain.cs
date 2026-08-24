@@ -36,16 +36,9 @@ namespace APNestClient
                 _connectUI.ToggleVisibility();
             }
 
-            if (Keyboard.current != null && Keyboard.current.f7Key.wasPressedThisFrame)
-            {
-                MelonLogger.Msg("Debug: forcing Trap - Counter-Battery");
-                _itemReceiver.ProcessAPItem("Trap - Counter-Battery");
-            }
-
             _apSession.ProcessPendingItems();
             _itemReceiver.RegisterMissionChangedEventHook();
             _itemReceiver.ProcessPendingMissionLoad();
-            _itemReceiver.PrintCBTimeRemaining();
         }
     }
 }
