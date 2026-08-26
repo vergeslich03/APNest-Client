@@ -10,6 +10,7 @@ namespace APNestClient
         private ConnectUI _connectUI;
         private ItemReceiver _itemReceiver;
         private APSession _apSession;
+        private MainMenuAPHook _mainMenuAPHook;
 
         public override void OnInitializeMelon()
         {
@@ -19,6 +20,8 @@ namespace APNestClient
             _apSession = _connectUI.GetApSession();
 
             _itemReceiver = new ItemReceiver();
+
+            _mainMenuAPHook = new MainMenuAPHook(_connectUI);
 
             MissionCompleteChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
             MedalAchievedChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
@@ -39,6 +42,7 @@ namespace APNestClient
             _apSession.ProcessPendingItems();
             _itemReceiver.RegisterMissionChangedEventHook();
             _itemReceiver.ProcessPendingMissionLoad();
+            _mainMenuAPHook.RegisterMainMenuHooks();
         }
     }
 }
