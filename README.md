@@ -1,65 +1,115 @@
-# AP_NEST — Archipelago integration for IRON NEST
+# APNest-Client
+Client for the Archipelago implementation for "IRON NEST: Heavy Turret Simulator".
 
-Archipelago multiworld randomizer support for **IRON NEST: Heavy Turret Simulator**,
-loaded via MelonLoader.
+## What even is Archipelago?
+Archipelago is a cross-game randomizer. You send items to friends playing other games and receive theirs in return.
 
-## Status
+If you want to know more, look here:
+https://archipelago.gg
 
-Not started. No existing AP integration for Iron Nest exists yet (checked Aug 2026) —
-this would be the first.
+## Installation
+To install this Mod, first install MelonLoader in the IRON NEST directory. You can find a guide on how to do that here:
+https://github.com/lavagang/melonloader#how-to-use-the-installer
 
-## Facts established so far
+The rest is simple, just download the `APNest.dll` from the release page and move/copy it into the `Mods` directory in
+the game's install directory.
 
-- Iron Nest uses the **IL2CPP** flavor of MelonLoader (not Mono). MelonLoader
-  regenerates interop assemblies into `MelonLoader/Il2CppAssemblies` in the game
-  install — the C# mod project references those, not the game's raw DLLs.
-- Prior art to look at for hooks/state: Iron Nest's existing Nexus mods (co-op sync
-  mod, cheat pack) and Open Nest Co-op.
-- The game runs on Linux via Proton (Windows build, not a native Linux build).
-  MelonLoader installs via a `version.dll` proxy-DLL hijack (confirmed: strings in
-  the game folder's `version.dll` reference `MelonLoader.Bootstrap.dll`/`hostfxr`).
-  Proton's built-in `version.dll` wins by default, so MelonLoader silently never
-  loads unless Wine is told to prefer the native one. **Required Steam launch
-  option:** `WINEDLLOVERRIDES="version=n,b" %command%`. Without it, nothing in
-  `Mods`/`UserLibs` ever runs. Confirmed working 2026-08-15.
-- `Mods/UnityExplorer.ML.IL2CPP.CoreCLR.dll` + `UserLibs/UniverseLib.ML.IL2CPP.Interop.dll`
-  (from a modding Discord) verified legitimate — match the real
-  [sinai-dev/UnityExplorer](https://github.com/sinai-dev/UnityExplorer) release
-  naming/placement, correct internal version string, no suspicious strings, valid
-  unobfuscated .NET PE. **F7** toggles the in-game overlay (scene tree, live
-  object/field inspector, C# REPL console, hook manager) — this is our primary tool
-  for confirming the `Il2Cpp` class/field names from `iron-nest-api-notes.md`
-  against the live running game before writing any Harmony patches against them.
+To find that directory via Steam, right click on the game --> Manage --> Browse local files.
 
-## Project layout
+It should be `~/.local/share/Steam/steamapps/common/Iron Nest Heavy Turret Simulator` or comparable on Linux and
+`C:\Program Files (x86)\Steam\steamapps\common\Iron Nest Heavy Turret Simulator` or comparable on Windows.
 
-- `client/` — the in-game C# MelonLoader mod (Harmony patches + `Archipelago.MultiClient.Net`
-  to talk to the AP server). This is what actually runs inside Iron Nest.
-- `apworld/` — the Python apworld package that plugs into the Archipelago *generator*:
-  defines regions/locations/items/logic rules. Runs server-side, not in-game.
+## How to get the apworld
+The easiest way would be to download it from the release page, right besides the `APNest.dll`.
+It's named `iron_nest.apworld`.
 
-Reference implementation with the same two-folder shape (MelonLoader mod +
-apworld): [PVZFusionArchipelago](https://github.com/GraymonDgt/PVZFusionArchipelago).
+You can also visit my fork of the Archipelago repository and download it from that one's release page:
+https://github.com/vergeslich03/APNest
 
-- `reference/iron-nest-coop/` — cloned copy of [not-so-sure/iron-nest-coop](https://github.com/not-so-sure/iron-nest-coop),
-  a Harmony/MelonLoader coop mod for Iron Nest. Source-only, no build project — used
-  purely as an API map of the game's real IL2CPP classes.
-- `reference/iron-nest-api-notes.md` — distilled notes from that repo: confirmed
-  `Il2Cpp`/`Il2CppSleepyNodes` namespaces, candidate hook points (`MissionManager`,
-  `FireMissionSceneTemplate`, `MapEntity`, `TurretController`/`GunController`,
-  the `Interactable` system) mapped to likely AP location/item roles, and the
-  MelonMod entry-point boilerplate to copy.
+## How to get the yaml
+You can either install the apworld in the Archipelago Client and use the `Generate Template Options` there
+or manually edit the template yaml from this repo's release page or the Archipelago fork's one.
 
-## Planned starting order
+## Compatibility
+The latest version is tested for:
 
-1. Install MelonLoader (IL2CPP build) on Iron Nest, confirm it boots, generate
-   Il2Cpp interop assemblies.
-2. Decompile the game (dnSpy/ILSpy on the generated assemblies, or Il2CppDumper)
-   to find candidate "check" events (mission complete, turret unlock, upgrade
-   purchased, etc.) and candidate "item" grants.
-3. Scaffold a minimal `MelonMod` that just logs those hook points firing — no
-   Archipelago yet.
-4. Add `Archipelago.MultiClient.Net` (NuGet, no dependencies) and get a bare
-   connect/login working against a local AP server
-   (`ArchipelagoSessionFactory.CreateSession(...)`, `TryConnectAndLogin()`).
-5. Write the apworld, now backed by a concrete list of locations/items from step 2.
+- Game Version: 1.0 (1663)
+- MelonLoader Version: v0.7.3
+- Proton: 11.0
+
+## Usage
+To connect to Archipelago, simply click on the new `AP`-Button in the main menu, type in your connection info
+and click connect.
+
+Don't be alarmed when you find your progress reset, the mod redirects the game's Save data dir,
+so your actual progress is untouched and will be playable as normal when you remove the mod.
+
+> [!NOTE]
+> Due to current limitations you will find your progress reset every time you connect to a new Archipelago Multiworld,
+> even when switching back to an old one.
+> I am still trying to find a solution to save the progress in a way it does not get reset.
+
+## Features
+### Goals
+
+- Mission 15 (White Shells) completed
+- Gold Medals in every Mission (excluding the challenges --> opt in)
+
+> [!WARNING]
+> The Mission goal is currently unbalanced — it yields about 15 fewer locations than items.
+> It can't be used for a solo run, or for a Multiworld unless the other games provide a surplus of at least ~15 checks.
+
+### Locations
+
+- 1 for every completed Mission
+- 1 for every Medal and medal tier --> gold fires 3 checks (bronze, silver, gold), so a mission with 4 medals has 12 checks.
+
+> [!NOTE]
+> Currently the checks are only wired to and including mission 4, since I did not yet get the ids of the medals in
+> the following missions.
+
+### Items
+#### Progression
+
+- all the shell punchcards
+- powder charges punchcard
+- scout plane punchcard
+- emergency move punchcard
+
+#### Useful
+
+- spotter punchcard
+- spotter spawn
+- location report punchcard
+- location report spawn
+
+#### Filler
+
+- powder charge spawn (adds 1-10 charges to your inventory)
+- requisition points spawn (adds 25-100 points to your wallet)
+
+#### Traps
+
+- Emergency move --> triggers an emergency move
+- Magazine filler --> fills your magazines with STAR shells
+- Counter-Battery --> spawns an artillery enemy and starts a Counter-Battery-Timer
+
+## Issue/Bug reports
+If you find any issues related to this mod, please open an issue in this repo or ping me (@vergeslich)
+in the APNest thread in the modding channel on the official discord.
+
+## Roadmap
+What do I plan to implement next?
+
+- Sabotage trap --> Sabotage the Iron Nest, stopping the engine or opening some valves
+- BepinEx port
+
+## License
+This project is under the MIT License, for more info see [LICENSE.md](./LICENSE.md)
+
+## AI Disclaimer
+I will be honest with you all, without AI I would never have gotten this project to a working state,
+so credit where credit is due.
+
+This project was made by me (a human) to about 90%. The remaining ~10% — mostly the main-menu UI —
+was done by Claude Sonnet 5, along with most of the referencing, research, and debugging throughout.
