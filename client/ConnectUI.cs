@@ -1,5 +1,11 @@
+using System.Collections.Generic;
+using Il2Cpp;
+using Il2CppTMPro;
 using MelonLoader;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace APNestClient;
 
@@ -13,16 +19,19 @@ public class ConnectUI
     private string _apPassword;
     private APSession _apSession;
 
-    private bool _visible;
-    private Rect _window;
-    
+    private GameObject _apClipboard;
+
+    private InputSystemSwitcher _inputSystemSwitcher;
+
+    private TextMeshProUGUI _connectButtonLabel;
+    private TMP_InputField _hostField;
+    private TMP_InputField _portField;
+    private TMP_InputField _slotField;
+    private TMP_InputField _passwordField;
+    private TMP_InputField _statusField;
+
     public ConnectUI()
     {
-        // TODO: text-entry is hardcoded for now — GUI.TextField/PasswordField throw
-        // (GUIStateObjects.GetStateObject "Method unstripping failed", see
-        // reference/iron-nest-api-notes.md). Revisit once a workaround is found, and
-        // investigate the main-menu envelope-on-the-books spot for a diegetic trigger
-        // instead of the current F8 keybind.
         MelonPreferences_Category category = MelonPreferences.CreateCategory("APNestClient");
         MelonPreferences_Entry<string> apHostEntry = category.CreateEntry("APHost", "localhost");
         MelonPreferences_Entry<int> apPortEntry = category.CreateEntry("APPort", 38281);
@@ -35,8 +44,274 @@ public class ConnectUI
         _apSlotName = apSlotEntry;
         _apPassword = "";
         _apSession =  new APSession();
+    }
 
-        _window = new Rect((Screen.width / 2) - 100f, 10f, 200f, 100f);
+    public void BuildClipboard()
+    {
+        GameObject clipboardParent = GameObject.Find("MainMenu Interactable objects");
+        GameObject clipboardRef =  clipboardParent.transform.Find("Clipboard Menu").gameObject;
+
+        GameObject clipboardClone = Object.Instantiate(clipboardRef, clipboardParent.transform);
+        clipboardClone.name = "AP Connection Menu";
+
+        clipboardClone.GetComponentInChildren<Interactable>(true).enabled = false;
+        foreach (BoxCollider box in clipboardClone.GetComponentsInChildren<BoxCollider>(true))
+        {
+            if (box.gameObject.name == "Settings Button")
+            {
+                box.enabled = false;
+            }
+        }
+
+        Transform layoutParent = clipboardClone.transform.Find("Canvas/Settings menu/Settings/ContentCtn/Content (Game)/Scroll View/Viewport/Content/Layout");
+        GameObject rowTemplate = layoutParent.Find("TextfieldConsoleUGUI (DiscordKey)").gameObject;
+
+        List<GameObject> originalRows = new();
+        for (int i = 0; i < layoutParent.childCount; i++)
+        {
+            originalRows.Add(layoutParent.GetChild(i).gameObject);
+        }
+        
+        GameObject apHostInput = Object.Instantiate(rowTemplate, layoutParent);
+        GameObject apPortInput = Object.Instantiate(rowTemplate, layoutParent);
+        GameObject apSlotInput = Object.Instantiate(rowTemplate, layoutParent);
+        GameObject apPasswordInput = Object.Instantiate(rowTemplate, layoutParent);
+        GameObject apStatusRow = Object.Instantiate(rowTemplate, layoutParent);
+
+        foreach (GameObject row in originalRows)
+        {
+            Object.Destroy(row);
+        }
+        
+        Object.Destroy(clipboardClone.transform.Find("Canvas/Settings menu/Settings/TabsCtn").gameObject);
+        Object.Destroy(clipboardClone.transform.Find("Canvas/Settings menu/Settings/ContentCtn/Content (Graphics)").gameObject);
+        Object.Destroy(clipboardClone.transform.Find("Canvas/Settings menu/Settings/ContentCtn/Content (Audio)").gameObject);
+        Object.Destroy(clipboardClone.transform.Find("Canvas/Settings menu/Settings/ContentCtn/Content (Controls)").gameObject);
+        Object.Destroy(clipboardClone.transform.Find("Canvas/Settings menu/Settings/ContentCtn/Content (Controls)Gamepad").gameObject);
+        Object.Destroy(clipboardClone.transform.Find("Canvas/Settings menu/Settings/ContentCtn/ButtonSecondaryUGUI (reset all)").gameObject);
+        
+        GameObject titleObj = clipboardClone.transform.Find("Canvas/Settings menu/Settings/Title Settings").gameObject;
+        StaticLocalisedText titleLocalised = titleObj.GetComponent<StaticLocalisedText>();
+        if (titleLocalised != null)
+        {
+            Object.Destroy(titleLocalised);
+        }
+        titleObj.GetComponent<TextMeshProUGUI>().text = "Archipelago Settings";
+
+        Transform scrollView = clipboardClone.transform.Find("Canvas/Settings menu/Settings/ContentCtn/Content (Game)/Scroll View");
+        scrollView.GetComponent<UnityEngine.UI.ScrollRect>().vertical = false;
+        Object.Destroy(scrollView.Find("Scrollbar Vertical").gameObject);
+
+        apHostInput.name = "AP Host";
+        apPortInput.name = "AP Port";
+        apSlotInput.name = "AP Slot";
+        apPasswordInput.name = "AP Password";
+        apStatusRow.name = "AP Status";
+
+        _hostField = SetupRow(apHostInput, "Host", "archipelago.gg", GetApHost(), TMP_InputField.ContentType.Standard, SetApHost);
+        _portField = SetupRow(apPortInput, "Port", "38281", GetApPort().ToString(), TMP_InputField.ContentType.IntegerNumber, value =>
+        {
+            if (int.TryParse(value, out int port))
+            {
+                SetApPort(port);
+            }
+        });
+        _slotField = SetupRow(apSlotInput, "Slot", "IronNest", GetApSlotName(), TMP_InputField.ContentType.Standard, SetApSlotName);
+        _passwordField = SetupRow(apPasswordInput, "Password", "(none)", GetApPassword(), TMP_InputField.ContentType.Password, SetApPassword);
+        _statusField = SetupStatusRow(apStatusRow);
+
+        // Repurpose the settings "Apply" button as our Connect/Disconnect toggle.
+        GameObject connectButtonObj = clipboardClone.transform.Find("Canvas/Settings menu/Settings/ContentCtn/SGButtonPrimaryUGUI (apply)").gameObject;
+        Button connectButton = connectButtonObj.GetComponent<Button>();
+        for (int i = 0; i < connectButton.onClick.GetPersistentEventCount(); i++)
+        {
+            connectButton.onClick.SetPersistentListenerState(i, UnityEventCallState.Off);
+        }
+
+        _connectButtonLabel = connectButtonObj.GetComponentInChildren<TextMeshProUGUI>(true);
+        StaticLocalisedText connectLabelLocalized = _connectButtonLabel.GetComponent<StaticLocalisedText>();
+        if (connectLabelLocalized != null)
+        {
+            Object.Destroy(connectLabelLocalized);
+        }
+        connectButton.onClick.AddListener((UnityAction)OnConnectClicked);
+        
+        GameObject closeButtonObj = clipboardClone.transform.Find("Canvas/Settings menu/Settings/ContentCtn/ButtonSecondaryUGUI (close)").gameObject;
+        Button closeButton = closeButtonObj.GetComponent<Button>();
+        for (int i = 0; i < closeButton.onClick.GetPersistentEventCount(); i++)
+        {
+            closeButton.onClick.SetPersistentListenerState(i, UnityEventCallState.Off);
+        }
+        closeButton.onClick.AddListener((UnityAction)Hide);
+
+        _apClipboard = clipboardClone;
+
+        _inputSystemSwitcher = Object.FindObjectOfType<InputSystemSwitcher>();
+        if (_inputSystemSwitcher == null)
+        {
+            InputSystemSwitcher[] allSwitchers = Resources.FindObjectsOfTypeAll<InputSystemSwitcher>();
+            if (allSwitchers.Length > 0)
+            {
+                _inputSystemSwitcher = allSwitchers[0];
+            }
+        }
+        if (_inputSystemSwitcher == null)
+        {
+            MelonLogger.Warning("[ConnectUI] InputSystemSwitcher not found — AP clipboard text input will not work.");
+        }
+
+        RefreshAPConnectionUI();
+    }
+
+    private void OnConnectClicked()
+    {
+        if (_apSession.GetConnectionState() == APConnectionState.Connected)
+        {
+            _apSession.Disconnect();
+            RefreshAPConnectionUI();
+            return;
+        }
+
+        SetApHost(_hostField.text.Trim());
+        if (int.TryParse(_portField.text, out int port))
+        {
+            SetApPort(port);
+        }
+        SetApSlotName(_slotField.text.Trim());
+        SetApPassword(_passwordField.text);
+        Persist();
+
+        _apSession.Connect(GetApHost(), GetApPort(), GetApSlotName(), GetApPassword());
+        RefreshAPConnectionUI();
+    }
+
+    private void RefreshAPConnectionUI()
+    {
+        string buttonText;
+        string statusText;
+
+        switch (_apSession.GetConnectionState())
+        {
+            case APConnectionState.Connected:
+                buttonText = "Disconnect";
+                statusText = "Connected";
+                break;
+            case APConnectionState.Connecting:
+                buttonText = "Connecting...";
+                statusText = "Connecting...";
+                break;
+            case APConnectionState.Failed:
+                buttonText = "Connect";
+                string reason = _apSession.GetLoginFailureReason();
+                statusText = "Failed: " + (string.IsNullOrEmpty(reason) ? "unknown error" : reason);
+                break;
+            default:
+                buttonText = "Connect";
+                statusText = "Not connected";
+                break;
+        }
+
+        if (_connectButtonLabel != null)
+        {
+            _connectButtonLabel.text = buttonText;
+        }
+        if (_statusField != null)
+        {
+            _statusField.text = statusText;
+        }
+    }
+
+    private TMP_InputField SetupRow(GameObject row, string label, string placeholder, string initialValue, TMP_InputField.ContentType contentType, System.Action<string> onEndEdit)
+    {
+        UILeaderboardOptOutListener optOut = row.GetComponent<UILeaderboardOptOutListener>();
+        if (optOut != null)
+        {
+            Object.Destroy(optOut);
+        }
+
+        GameObject labelObj = row.transform.Find("Label").gameObject;
+        StaticLocalisedText labelLocalised = labelObj.GetComponent<StaticLocalisedText>();
+        if (labelLocalised != null)
+        {
+            Object.Destroy(labelLocalised);
+        }
+        labelObj.GetComponent<TextMeshProUGUI>().text = label;
+
+        Transform inputFieldTransform = row.transform.Find("InputField (TMP)");
+        TMP_InputField inputField = inputFieldTransform.GetComponent<TMP_InputField>();
+
+        InputFieldHelper inputFieldHelper = inputFieldTransform.GetComponent<InputFieldHelper>();
+        if (inputFieldHelper != null)
+        {
+            Object.Destroy(inputFieldHelper);
+        }
+
+        inputField.contentType = contentType;
+        inputField.text = initialValue;
+
+        inputField.interactable = true;
+        inputField.readOnly = false;
+        CanvasGroup canvasGroup = inputFieldTransform.GetComponent<CanvasGroup>();
+        if (canvasGroup != null)
+        {
+            canvasGroup.interactable = true;
+            canvasGroup.blocksRaycasts = true;
+        }
+
+        inputFieldTransform.Find("Text Area/Placeholder").GetComponent<TextMeshProUGUI>().text = placeholder;
+
+        inputField.onEndEdit.AddListener(onEndEdit);
+
+        System.Action<string> onSelect = value =>
+        {
+            if (_inputSystemSwitcher != null)
+            {
+                _inputSystemSwitcher.EnableTextInput();
+            }
+        };
+        System.Action<string> onDeselect = value =>
+        {
+            if (_inputSystemSwitcher != null)
+            {
+                _inputSystemSwitcher.DisableTextInput();
+            }
+        };
+        
+        inputField.onSelect.AddListener(onSelect);
+        inputField.onDeselect.AddListener(onDeselect);
+
+        return inputField;
+    }
+
+    private TMP_InputField SetupStatusRow(GameObject row)
+    {
+        UILeaderboardOptOutListener optOut = row.GetComponent<UILeaderboardOptOutListener>();
+        if (optOut != null)
+        {
+            Object.Destroy(optOut);
+        }
+
+        GameObject labelObj = row.transform.Find("Label").gameObject;
+        StaticLocalisedText labelLocalised = labelObj.GetComponent<StaticLocalisedText>();
+        if (labelLocalised != null)
+        {
+            Object.Destroy(labelLocalised);
+        }
+        labelObj.GetComponent<TextMeshProUGUI>().text = "Status";
+
+        Transform inputFieldTransform = row.transform.Find("InputField (TMP)");
+        TMP_InputField inputField = inputFieldTransform.GetComponent<TMP_InputField>();
+
+        InputFieldHelper inputFieldHelper = inputFieldTransform.GetComponent<InputFieldHelper>();
+        if (inputFieldHelper != null)
+        {
+            Object.Destroy(inputFieldHelper);
+        }
+
+        inputField.readOnly = true;
+        inputFieldTransform.Find("Text Area/Placeholder").GetComponent<TextMeshProUGUI>().text = "";
+
+        return inputField;
     }
 
     public void Persist()
@@ -46,48 +321,31 @@ public class ConnectUI
 
     public void ToggleVisibility()
     {
-        _visible = !_visible;
-    }
-
-    public void Draw()
-    {
-        if (_visible)
+        PickUpZoomTarget zoomTarget = _apClipboard.GetComponentInChildren<PickUpZoomTarget>();
+        if (zoomTarget.IsHeld)
         {
-            DrawWindowContents();
+            Hide();
+            return;
         }
+        zoomTarget.PickUp();
     }
 
-    private void DrawWindowContents()
+    private void Hide()
     {
-        const float rowHeight = 20f;
-        const float labelWidth = 90f;
-        const float fieldWidth = 100f;
-
-        float x = _window.x;
-        float y = _window.y;
-
-        // Read-only for now — see the hardcoded-values TODO in the constructor.
-        GUI.Label(new Rect(x, y, labelWidth, rowHeight), "Host:");
-        GUI.Label(new Rect(x + labelWidth, y, fieldWidth, rowHeight), GetApHost());
-        y += rowHeight;
-
-        GUI.Label(new Rect(x, y, labelWidth, rowHeight), "Port:");
-        GUI.Label(new Rect(x + labelWidth, y, fieldWidth, rowHeight), GetApPort().ToString());
-        y += rowHeight;
-
-        GUI.Label(new Rect(x, y, labelWidth, rowHeight), "Slot:");
-        GUI.Label(new Rect(x + labelWidth, y, fieldWidth, rowHeight), GetApSlotName());
-        y += rowHeight;
-
-        GUI.Label(new Rect(x, y, labelWidth, rowHeight), "Password:");
-        GUI.Label(new Rect(x + labelWidth, y, fieldWidth, rowHeight), string.IsNullOrEmpty(GetApPassword()) ? "(none)" : "****");
-        y += rowHeight;
-
-        if (GUI.Button(new Rect(x, y, labelWidth + fieldWidth, rowHeight), "Connect"))
+        PickUpZoomTarget zoomTarget = _apClipboard.GetComponentInChildren<PickUpZoomTarget>();
+        if (!zoomTarget.IsHeld)
         {
-            MelonLogger.Msg("Connect Button clicked. Connection Info: " + GetApHost() + "/" + GetApPort() + "/" + GetApSlotName());
-            Persist();
-            _apSession.Connect(GetApHost(), GetApPort(), GetApSlotName(),  GetApPassword());
+            return;
+        }
+        zoomTarget.Release();
+
+        if (EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+        if (_inputSystemSwitcher != null)
+        {
+            _inputSystemSwitcher.DisableTextInput();
         }
     }
 
@@ -118,21 +376,21 @@ public class ConnectUI
 
     public void SetApHost(string host)
     {
-        this._apHost.Value = host;
+        _apHost.Value = host;
     }
 
     public void SetApPort(int port)
     {
-        this._apPort.Value = port;
+        _apPort.Value = port;
     }
     
     public void SetApSlotName(string slotName)
     {
-        this._apSlotName.Value = slotName;
+        _apSlotName.Value = slotName;
     }
 
     public void SetApPassword(string password)
     {
-        this._apPassword = password;
+        _apPassword = password;
     }
 }

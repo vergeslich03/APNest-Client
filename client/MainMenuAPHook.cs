@@ -112,6 +112,7 @@ public class MainMenuAPHook
         }
 
         _apButtonRef = apConnectButton;
+        _connectUI.BuildClipboard();
     }
 
     private void HandleMainMenuUnloaded(string sceneName)

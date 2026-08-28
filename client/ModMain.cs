@@ -1,5 +1,4 @@
 using MelonLoader;
-using UnityEngine.InputSystem;
 
 [assembly: MelonInfo(typeof(APNestClient.ModMain), "AP Nest Client", "0.0.1", "vergeslich03")]
 
@@ -27,18 +26,8 @@ namespace APNestClient
             MedalAchievedChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
         }
 
-        public override void OnGUI()
-        {
-            _connectUI.Draw();
-        }
-
         public override void OnUpdate()
         {
-            if (Keyboard.current != null && Keyboard.current.f8Key.wasPressedThisFrame)
-            {
-                _connectUI.ToggleVisibility();
-            }
-
             _apSession.ProcessPendingItems();
             _itemReceiver.RegisterMissionChangedEventHook();
             _itemReceiver.ProcessPendingMissionLoad();
