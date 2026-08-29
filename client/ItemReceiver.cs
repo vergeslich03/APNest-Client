@@ -8,6 +8,7 @@ using Il2CppSystem.Collections.Generic;
 using MelonLoader;
 using UnityEngine;
 using KeyNotFoundException = System.Collections.Generic.KeyNotFoundException;
+using Object = UnityEngine.Object;
 using Random = System.Random;
 
 namespace APNestClient;
@@ -15,7 +16,10 @@ namespace APNestClient;
 public class ItemReceiver
 {
     private const float CBT_DEFAULT_TIME = 300f;
-    public const string CB_DEFAULT_ID = "APArtillery";
+    private const string CB_DEFAULT_ID = "APArtillery";
+    private const int VALVE_SABOTAGE_MIN = 2;
+    private const int VALVE_SABOTAGE_MAX = 5;
+    
     
     private string _itemQueueFile;
     private object _itemQueueLock = new();
@@ -26,6 +30,8 @@ public class ItemReceiver
     private bool _missionChangedSubscribed;
     private volatile bool _pendingMissionLoad;
     private volatile string _pendingMissionId;
+
+    private bool _sabotageThisMission = false;
 
     public ItemReceiver()
     {
@@ -47,6 +53,8 @@ public class ItemReceiver
 
     private void DrainQueue()
     {
+        _sabotageThisMission =  false;
+        
         int count = _itemQueue.Count;
         for (int i = 0; i < count && _itemQueue.TryDequeue(out string itemName); i++)
         {
@@ -557,6 +565,75 @@ public class ItemReceiver
                 
                 cbtInstance.StartTimer();
 
+                break;
+            }
+            case "TrapSabotage":
+            {
+                // bail out on those two missions, since the right gun valves cannot be repaired.
+                if (MissionManager.Instance.CurrentMission.MissionID == "Hospital False Flag" ||
+                    MissionManager.Instance.CurrentMission.MissionID == "ceremony and HCHE")
+                {
+                    throw new NullReferenceException("valves on right gun cannot be repaired in Mission 1 or 2");
+                }
+                
+                DieselEngineController engine = Object.FindFirstObjectByType<DieselEngineController>();
+
+                if (!engine.EnginesRunning)
+                {
+                    throw new NullReferenceException("Engine is off already");
+                }
+
+                if (_sabotageThisMission)
+                {
+                    throw new NullReferenceException("Sabotaged already");
+                }
+                
+                _sabotageThisMission = true;
+                
+                DieselEngineStateRelay relay = Object.FindFirstObjectByType<DieselEngineStateRelay>();
+                relay.ForceEngineOff();
+
+                Random rand = new();
+                int numOfSabotagedValves = rand.Next(VALVE_SABOTAGE_MIN, VALVE_SABOTAGE_MAX + 1);// + 1 because it's excluding
+                for (int i = 0; i < numOfSabotagedValves; i++)
+                {
+                    ValveController valve = HighPressureSystemManager.GetRandomRegisteredValveAcrossAllSystems();
+                    valve.DamageValve();
+                }
+                
+                List<string> sabotageLinesPrimary = new();
+                List<string> sabotageLinesSecondary = new();
+                
+                sabotageLinesPrimary.Add("SABOTAGE");
+                sabotageLinesPrimary.Add("SABOTAGE");
+                sabotageLinesPrimary.Add("SABOTAGE");
+                sabotageLinesSecondary.Add("----------------------------------------------------");
+                sabotageLinesSecondary.Add("ANTI-MONARCHISTS HAVE SABOTAGED YOUR IRON NEST");
+                sabotageLinesSecondary.Add("ENGINES HAVE BEEN DISABLED");
+                sabotageLinesSecondary.Add("PRESSURE DROPS IN SEVERAL CRITICAL SYSTEMS DETECTED");
+                sabotageLinesSecondary.Add("----------------------------------------------------");
+                
+                Teleprinter teleprinterPrimary = Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Primary);
+                Teleprinter teleprinterSecondary = Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Secondary);
+                
+                teleprinterPrimary.SignalAlarm(Teleprinter.TeleprinterAlarmState.High);
+                teleprinterSecondary.SignalAlarm(Teleprinter.TeleprinterAlarmState.High);
+
+                teleprinterPrimary
+                    .SubmitLines(
+                        Guid.NewGuid().ToString(),
+                        sabotageLinesPrimary.Cast<IEnumerable<string>>(),
+                        null,
+                        false
+                    );
+                teleprinterSecondary
+                    .SubmitLines(
+                        Guid.NewGuid().ToString(),
+                        sabotageLinesSecondary.Cast<IEnumerable<string>>(),
+                        null,
+                        false
+                    );
+                
                 break;
             }
         }

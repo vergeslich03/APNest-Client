@@ -1,4 +1,5 @@
 using MelonLoader;
+using UnityEngine.InputSystem;
 
 [assembly: MelonInfo(typeof(APNestClient.ModMain), "AP Nest Client", "0.0.1", "vergeslich03")]
 
