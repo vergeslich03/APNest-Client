@@ -7,12 +7,14 @@ public class LookupTables
     public Dictionary<string, string> MissionNameToAPLocationNameTable = new();
     public Dictionary<string, string> MedalNameToAPLocationNameTable = new();
     public Dictionary<string, string> ApItemNameToGameIdTable = new();
+    public Dictionary<string, List<string>> MissionPrerequisiteTable = new();
     
     public enum TableType
     {
         MissionLocations,
         MedalLocations,
         Items,
+        MissionPrerequisites,
     }
 
     public LookupTables(TableType tableType)
@@ -68,6 +70,7 @@ public class LookupTables
             MedalNameToAPLocationNameTable.Add("Artillery Introduction-No Quarter Cross-Bronze", "Mission 4: Counter-Battery - AS Bronze");
             MedalNameToAPLocationNameTable.Add("Artillery Introduction-No Quarter Cross-Silver", "Mission 4: Counter-Battery - AS Silver");
             MedalNameToAPLocationNameTable.Add("Artillery Introduction-No Quarter Cross-Gold", "Mission 4: Counter-Battery - AS Gold");
+            return;
         }
         if (tableType == TableType.Items)
         {
@@ -107,6 +110,34 @@ public class LookupTables
             ApItemNameToGameIdTable.Add("Trap - Magazine Filler", "TrapFillMagazine");
             ApItemNameToGameIdTable.Add("Trap - Sabotage", "TrapSabotage");
             ApItemNameToGameIdTable.Add("Trap - Counter-Battery", "TrapCounterBattery");
+            return;
+        }
+
+        if (tableType == TableType.MissionPrerequisites)
+        {
+            List<string> mission2List = new();
+            mission2List.Add("HEShell");
+            mission2List.Add("STARShell");
+
+            List<string> mission3List = new();
+            mission3List.Add("APShell");
+            mission3List.Add("PowderCharges");
+
+            List<string> mission9List = new();
+            mission9List.Add("TEARShell");
+
+            List<string> mission13List = new();
+            mission13List.Add("MoveZone");
+
+            List<string> mission15List = new();
+            mission15List.Add("ATMCShell");
+            
+            MissionPrerequisiteTable.Add("ceremony and HCHE",  mission2List);
+            MissionPrerequisiteTable.Add("Insurrections and Requisitions",  mission3List);
+            MissionPrerequisiteTable.Add("DeadReckoning",  mission9List);
+            MissionPrerequisiteTable.Add("PhantomBattery",  mission13List);
+            MissionPrerequisiteTable.Add("WhiteShells",  mission15List);
+            
             return;
         }
     }
