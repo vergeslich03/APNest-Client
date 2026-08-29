@@ -159,7 +159,7 @@ public class ItemReceiver
             case "SpawnRequisitionPoints":
             {
                 Random rand = new();
-                MissionStatsTracker.Instance.AddRequisitionPoints(rand.Next(10, 150));
+                MissionStatsTracker.Instance.AddRequisitionPoints(rand.Next(10, 151));
                 break;
             }
             case "SpawnSpotter":
