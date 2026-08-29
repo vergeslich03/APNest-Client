@@ -27,14 +27,14 @@ You can also visit my fork of the Archipelago repository and download it from th
 https://github.com/vergeslich03/APNest
 
 ## How to get the yaml
-You can either install the apworld in the Archipelago Client and use the `Generate Template Options` there
+You can either install the apworld in the Archipelago Client and use the `Options Generator` there
 or manually edit the template yaml from this repo's release page or the Archipelago fork's one.
 
 ## Compatibility
 The latest version is tested for:
 
-- Game Version: 1.0 (1663)
-- MelonLoader Version: v0.7.3
+- Game: 1.0 (1663)
+- MelonLoader: v0.7.3
 - Proton: 11.0
 
 ## Usage
@@ -65,28 +65,28 @@ so your actual progress is untouched and will be playable as normal when you rem
 - 1 for every Medal and medal tier --> gold fires 3 checks (bronze, silver, gold), so a mission with 4 medals has 12 checks.
 
 > [!NOTE]
-> Currently the checks are only wired to and including mission 4, since I did not yet get the ids of the medals in
+> Currently the checks are only wired to and including mission 4, since I did not yet have the ids of the medals in
 > the following missions.
 
 ### Items
 #### Progression
 
-- all the shell punchcards
-- powder charges punchcard
-- scout plane punchcard
-- emergency move punchcard
+- all the Shell Punchcards
+- Powder Charges Punchcard
+- Scout Plane punchcard
+- Emergency Move punchcard
 
 #### Useful
 
-- spotter punchcard
-- spotter spawn
-- location report punchcard
-- location report spawn
+- Spotter Punchcard
+- Spotter spawn
+- Location Report Punchcard
+- Location Report spawn
 
 #### Filler
 
-- powder charge spawn (adds 1-10 charges to your inventory)
-- requisition points spawn (adds 25-100 points to your wallet)
+- Powder Charge spawn (adds 5-25 charges to your inventory)
+- Requisition Points spawn (adds 10-150 points to your wallet)
 
 #### Traps
 
@@ -103,6 +103,8 @@ What do I plan to implement next?
 
 - Sabotage trap --> Sabotage the Iron Nest, stopping the engine or opening some valves
 - BepinEx port
+- Fixing the 15 check deficit
+- Saving progress for multiple Multiworlds
 
 ## License
 This project is under the MIT License, for more info see [LICENSE.md](./LICENSE.md)
