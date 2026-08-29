@@ -1,6 +1,7 @@
 .idea
 docs
 reference
+*.csproj
 
 # helpers
 build.sh
