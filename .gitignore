@@ -1,7 +1,6 @@
 .idea
 docs
 reference
-__pycache__
 
 # helpers
 build.sh
