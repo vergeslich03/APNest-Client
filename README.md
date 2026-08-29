@@ -24,7 +24,7 @@ The easiest way would be to download it from the release page, right besides the
 It's named `iron_nest.apworld`.
 
 You can also visit my fork of the Archipelago repository and download it from that one's release page:
-https://github.com/vergeslich03/APNest
+https://github.com/vergeslich03/APNest/releases
 
 ## How to get the yaml
 You can either install the apworld in the Archipelago Client and use the `Options Generator` there
