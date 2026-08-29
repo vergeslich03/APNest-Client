@@ -101,9 +101,10 @@ in the APNest thread in the modding channel on the official discord.
 ## Roadmap
 What do I plan to implement next?
 
-- Sabotage trap --> Sabotage the Iron Nest, stopping the engine or opening some valves
 - BepinEx port
 - Fixing the 15 check deficit
+- Displaying sent checks in-game
+- Implementing Death-Link
 - Saving progress for multiple Multiworlds
 
 ## License
