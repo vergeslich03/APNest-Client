@@ -53,7 +53,9 @@ so your actual progress is untouched and will be playable as normal when you rem
 ### Goals
 
 - Mission 15 (White Shells) completed
-- Gold Medals in every Mission (excluding the challenges --> opt in)
+  - Medal Checks opt-in
+- Bronze/Silver/Gold on all medals in all Misions 
+  - Challenge Levels opt-in
 
 > [!WARNING]
 > The Mission goal is currently unbalanced — it yields about 15 fewer locations than items.
@@ -63,10 +65,6 @@ so your actual progress is untouched and will be playable as normal when you rem
 
 - 1 for every completed Mission
 - 1 for every Medal and medal tier --> gold fires 3 checks (bronze, silver, gold), so a mission with 4 medals has 12 checks.
-
-> [!NOTE]
-> Currently the checks are only wired to and including mission 4, since I did not yet have the ids of the medals in
-> the following missions.
 
 ### Items
 #### Progression
