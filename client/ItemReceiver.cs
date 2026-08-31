@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using Il2Cpp;
+using Il2CppInterop.Runtime;
 using Il2CppLocalisation;
 using Il2CppSleepyNodes;
 using Il2CppSystem.Collections.Generic;
@@ -88,6 +89,11 @@ public class ItemReceiver
             HandlePunchcardItem(itemName);
         }
         catch (KeyNotFoundException)
+        {
+            MelonLogger.Error("Unknown Item '" + apItemName + "'");
+            return;
+        }
+        catch (Il2CppException)
         {
             MelonLogger.Error("Unknown Item '" + apItemName + "'");
             return;
