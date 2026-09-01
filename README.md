@@ -83,14 +83,15 @@ so your actual progress is untouched and will be playable as normal when you rem
 
 #### Filler
 
-- Powder Charge spawn (adds 5-25 charges to your inventory)
-- Requisition Points spawn (adds 10-150 points to your wallet)
+- Powder Charge spawn --> adds 5-25 charges to your inventory
+- Requisition Points spawn --> adds 10-150 points to your wallet
 
 #### Traps
 
 - Emergency move --> triggers an emergency move
 - Magazine filler --> fills your magazines with STAR shells
 - Counter-Battery --> spawns an artillery enemy and starts a Counter-Battery-Timer
+- Sabotage --> Engine stops and 2-5 Valves open up
 
 ## Issue/Bug reports
 If you find any issues related to this mod, please open an issue in this repo or ping me (@vergeslich)
