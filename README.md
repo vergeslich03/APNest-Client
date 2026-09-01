@@ -11,7 +11,7 @@ https://archipelago.gg
 To install this Mod, first install MelonLoader in the IRON NEST directory. You can find a guide on how to do that here:
 https://github.com/lavagang/melonloader#how-to-use-the-installer
 
-The rest is simple, just download the `APNest.dll` from the release page and move/copy it into the `Mods` directory in
+The rest is simple, just download the `APNestClient.dll` from the release page and move/copy it into the `Mods` directory in
 the game's install directory.
 
 To find that directory via Steam, right click on the game --> Manage --> Browse local files.
