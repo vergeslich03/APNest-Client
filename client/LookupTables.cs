@@ -257,6 +257,7 @@ public class LookupTables
 
             List<string> mission13List = new();
             mission13List.Add("MoveZone");
+            mission13List.Add("ScoutPlane");
 
             List<string> mission15List = new();
             mission15List.Add("ATMCShell");
