@@ -251,6 +251,9 @@ public class LookupTables
             List<string> mission3List = new();
             mission3List.Add("APShell");
             mission3List.Add("PowderCharges");
+            
+            List<string> mission6List = new();
+            mission6List.Add("SMKShell");
 
             List<string> mission9List = new();
             mission9List.Add("TEARShell");
@@ -264,6 +267,7 @@ public class LookupTables
             
             MissionPrerequisiteTable.Add("ceremony and HCHE",  mission2List);
             MissionPrerequisiteTable.Add("Insurrections and Requisitions",  mission3List);
+            MissionPrerequisiteTable.Add("SiegeOfCartagena",  mission6List);
             MissionPrerequisiteTable.Add("DeadReckoning",  mission9List);
             MissionPrerequisiteTable.Add("PhantomBattery",  mission13List);
             MissionPrerequisiteTable.Add("WhiteShells",  mission15List);
