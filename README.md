@@ -57,9 +57,11 @@ so your actual progress is untouched and will be playable as normal when you rem
 - Bronze/Silver/Gold on all medals in all Misions 
   - Challenge Levels opt-in
 
-> [!WARNING]
-> The Mission goal is currently unbalanced — it yields about 15 fewer locations than items.
-> It can't be used for a solo run, or for a Multiworld unless the other games provide a surplus of at least ~15 checks.
+> [!Note]
+> Due to the ~15 Chacks deficit in the Mission Goal, only the bare minimum of shells is guaranteed.
+> This includes SMK, AP, TEAR and ATMC, as well as utility cards such as 'Emergency Move', 'Scout Plane' and 'Powder Charges'
+> everything else is randomized and not guaranteed to be in the multiworld. If you enable filler or traps in this goal type,
+> only one will be added and replaces another item in the pool.
 
 ### Locations
 
@@ -69,13 +71,14 @@ so your actual progress is untouched and will be playable as normal when you rem
 ### Items
 #### Progression
 
-- all the Shell Punchcards
+- AP, SMK, TEAR and ATMC Shell Punchcards
 - Powder Charges Punchcard
 - Scout Plane punchcard
 - Emergency Move punchcard
 
 #### Useful
 
+- All Shell Punchcards not listed under progression
 - Spotter Punchcard
 - Spotter spawn
 - Location Report Punchcard
@@ -101,7 +104,6 @@ in the APNest thread in the modding channel on the official discord.
 What do I plan to implement next?
 
 - BepinEx port
-- Fixing the 15 check deficit
 - Displaying sent checks in-game
 - Implementing Death-Link
 - Saving progress for multiple Multiworlds
