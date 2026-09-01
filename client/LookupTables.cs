@@ -244,10 +244,6 @@ public class LookupTables
 
         if (tableType == TableType.MissionPrerequisites)
         {
-            List<string> mission2List = new();
-            mission2List.Add("HEShell");
-            mission2List.Add("STARShell");
-
             List<string> mission3List = new();
             mission3List.Add("APShell");
             mission3List.Add("PowderCharges");
@@ -265,7 +261,6 @@ public class LookupTables
             List<string> mission15List = new();
             mission15List.Add("ATMCShell");
             
-            MissionPrerequisiteTable.Add("ceremony and HCHE",  mission2List);
             MissionPrerequisiteTable.Add("Insurrections and Requisitions",  mission3List);
             MissionPrerequisiteTable.Add("SiegeOfCartagena",  mission6List);
             MissionPrerequisiteTable.Add("DeadReckoning",  mission9List);
