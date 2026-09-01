@@ -37,8 +37,13 @@ public class APSession
     private string _loginFailureReason;
 
     private ArchipelagoSession _session;
+    private Dictionary<string, object> _slotData;
 
     private int _lastItemIndexHandled = -1;
+    private string _goal;
+    private string _medalTier;
+    private List<string> _neededChecksForGoal = new();
+    private bool _sentGoal = false;
     
     public static event Action<string> ItemReceived;
 
@@ -93,10 +98,18 @@ public class APSession
                 MelonLogger.Warning("Failed to connect to Archipelago: " + _loginFailureReason);
                 return;
             }
+
+            var login = (LoginSuccessful)connResult;
+            _slotData = login.SlotData;
+            
+            _goal = _slotData.TryGetValue("goal",  out var goal) ? goal.ToString() : "mission_15";
+            _medalTier = _slotData.TryGetValue("medal_tier", out var medalTier) ? medalTier.ToString() : "bronze";
             
             _connectionState = APConnectionState.Connected;
             MelonLogger.Msg("Successfully Connected to Archipelago, have fun!");
 
+            BuildGoalChecklist();
+            
             string currentSeed = _session.RoomState.Seed;
             if (!File.Exists(_seedFile))
             {
@@ -116,6 +129,7 @@ public class APSession
                 }
                 
                 _pendingItemNames.Clear();
+                _sentGoal = false;
 
                 List<string> tmpList = new();
                 tmpList.Add(currentSeed);
@@ -199,8 +213,11 @@ public class APSession
                         MelonLogger.Warning("Could not Send location checks.");
                         MelonLogger.Warning("Reason: " + (t.Exception?.InnerExceptions[0].Message ?? "canceled"));
                     }
+                    
+                    CheckGoalCompletion();
                 }
             );
+            
             return;
         }
         
@@ -251,6 +268,65 @@ public class APSession
         {
             ItemReceived?.Invoke(itemName);
         }
+    }
+
+    private void BuildGoalChecklist()
+    {
+        _neededChecksForGoal.Clear();
+        
+        switch (_goal)
+        {
+            case "mission_15":
+            {
+                _neededChecksForGoal.Add("Mission 15: White Shells");
+                break;
+            }
+            case "all_endings":
+            {
+                _neededChecksForGoal.Add("Mission 15: White Shells - E1 Bronze");
+                _neededChecksForGoal.Add("Mission 15: White Shells - E2 Bronze");
+                _neededChecksForGoal.Add("Mission 15: White Shells - E3 Bronze");
+                _neededChecksForGoal.Add("Mission 15: White Shells - E4 Bronze");
+                break;
+            }
+            case "all_medals":
+            {
+                LookupTables lookuptable = new LookupTables(LookupTables.TableType.MedalLocations);
+                foreach ((string medal, string check) in lookuptable.MedalNameToAPLocationNameTable)
+                {
+                    string medalLower = check.ToLower();
+                    if (medalLower.EndsWith(_medalTier) && !medalLower.StartsWith("mission 15"))
+                    {
+                        _neededChecksForGoal.Add(check);
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    private void CheckGoalCompletion()
+    {
+        if (_sentGoal || _connectionState != APConnectionState.Connected)
+        {
+            return;
+        }
+
+        HashSet<long> sentChecks = new HashSet<long>(_session.Locations.AllLocationsChecked);
+        long[] required = APNamesToIDs(_neededChecksForGoal.ToArray());
+
+        if (required.Length == 0 || required.Length != _neededChecksForGoal.Count)
+        {
+            return;
+        }
+
+        if (!required.All(sentChecks.Contains))
+        {
+            return;
+        }
+        _session.SetGoalAchieved();
+        _sentGoal = true;
+        MelonLogger.Msg("Goal achieved, congratulations!");
     }
 
     private void IncreaseHandledItemIndex()
