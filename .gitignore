@@ -1,0 +1,13 @@
+.idea
+docs
+reference
+*.csproj
+
+# helpers
+build.sh
+build_apworld.py
+
+# dotnet build output
+bin/
+obj/
+*.user
