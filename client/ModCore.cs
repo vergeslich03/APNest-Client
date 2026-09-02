@@ -1,33 +1,28 @@
-using MelonLoader;
-using UnityEngine.InputSystem;
-
-[assembly: MelonInfo(typeof(APNestClient.ModMain), "AP Nest Client", "0.0.1", "vergeslich03")]
+using APNestClient.ModLoader;
 
 namespace APNestClient
 {
-    public class ModMain : MelonMod
+    public class ModCore
     {
         private ConnectUI _connectUI;
         private ItemReceiver _itemReceiver;
         private APSession _apSession;
         private MainMenuAPHook _mainMenuAPHook;
 
-        public override void OnInitializeMelon()
+        public void Initialize(ModConfig config)
         {
-            MelonLogger.Msg("APNest Client loaded.");
+            Logger.Msg("APNest Client loaded.");
 
             _connectUI = new ConnectUI();
             _apSession = _connectUI.GetApSession();
-
             _itemReceiver = new ItemReceiver();
-
             _mainMenuAPHook = new MainMenuAPHook(_connectUI);
 
             MissionCompleteChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
             MedalAchievedChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
         }
 
-        public override void OnUpdate()
+        public void Update()
         {
             _apSession.ProcessPendingItems();
             _itemReceiver.RegisterMissionChangedEventHook();
