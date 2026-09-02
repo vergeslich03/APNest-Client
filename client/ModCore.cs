@@ -9,6 +9,8 @@ namespace APNestClient
         private APSession _apSession;
         private MainMenuAPHook _mainMenuAPHook;
 
+        private bool _initialized;
+
         public void Initialize(ModConfig config)
         {
             Logger.Msg("APNest Client loaded.");
@@ -20,10 +22,17 @@ namespace APNestClient
 
             MissionCompleteChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
             MedalAchievedChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
+
+            _initialized = true;
         }
 
         public void Update()
         {
+            if (!_initialized)
+            {
+                return;
+            }
+
             _apSession.ProcessPendingItems();
             _itemReceiver.RegisterMissionChangedEventHook();
             _itemReceiver.ProcessPendingMissionLoad();
