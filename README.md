@@ -54,14 +54,18 @@ so your actual progress is untouched and will be playable as normal when you rem
 
 - Mission 15 (White Shells) completed
   - Medal Checks opt-in
-- Bronze/Silver/Gold on all medals in all Misions 
-  - Challenge Levels opt-in
+- Bronze/Silver/Gold on all medals in all Misions
+- All Endings
 
 > [!Note]
 > Due to the ~15 Chacks deficit in the Mission Goal, only the bare minimum of shells is guaranteed.
 > This includes SMK, AP, TEAR and ATMC, as well as utility cards such as 'Emergency Move', 'Scout Plane' and 'Powder Charges'
 > everything else is randomized and not guaranteed to be in the multiworld. If you enable filler or traps in this goal type,
 > only one will be added and replaces another item in the pool.
+
+> [!WARNING]
+> Due to some missions having impossible Gold Medals, the 'All Gold Medals' goal is currently not achievable.
+> For more info look here: https://steamcommunity.com/sharedfiles/filedetails/?id=3779182733
 
 ### Locations
 
@@ -97,8 +101,8 @@ so your actual progress is untouched and will be playable as normal when you rem
 - Sabotage --> Engine stops and 2-5 Valves open up
 
 ## Issue/Bug reports
-If you find any issues related to this mod, please open an issue in this repo or ping me (@vergeslich)
-in the APNest thread in the modding channel on the official discord.
+If you find any issues or bugs related to this mod, please open an issue in this repo or ping me (@vergeslich)
+in the 'Archipelago Mod' thread in the modding channel on the game's official discord.
 
 ## Roadmap
 What do I plan to implement next?
