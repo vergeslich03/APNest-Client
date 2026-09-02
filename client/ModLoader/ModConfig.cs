@@ -17,9 +17,9 @@ public class ModConfig
     public ModConfig(ConfigFile cfgFile)
     {
         _cfgFile = cfgFile;
-        _apHost = cfgFile.Bind("APNestClient", "ApHost", "archipelago.gg");
-        _apPort = cfgFile.Bind("APNestClient", "ApPort", 38281);
-        _apSlotName = cfgFile.Bind("APNestClient", "ApSlotName", "IronNest");
+        _apHost = cfgFile.Bind("APNestClient", "APHost", "archipelago.gg");
+        _apPort = cfgFile.Bind("APNestClient", "APPort", 38281);
+        _apSlotName = cfgFile.Bind("APNestClient", "APSlotName", "IronNest");
     }
     
     public void Save() => _cfgFile.Save();
@@ -32,9 +32,9 @@ public class ModConfig
     public ModConfig()
     {
         _category = MelonPreferences.CreateCategory("APNestClient");
-        _apHost = _category.CreateEntry("ApHost", "archipelago.gg");
-        _apPort = _category.CreateEntry("ApPort", 38281);
-        _apSlotName = _category.CreateEntry("ApSlotName", "IronNest");
+        _apHost = _category.CreateEntry("APHost", "archipelago.gg");
+        _apPort = _category.CreateEntry("APPort", 38281);
+        _apSlotName = _category.CreateEntry("APSlotName", "IronNest");
     }
 
     public void Save() => _category.SaveToFile();
