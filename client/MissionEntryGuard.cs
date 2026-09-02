@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Reflection;
+using APNestClient.ModLoader;
 using HarmonyLib;
 using Il2Cpp;
 using Il2CppSleepyNodes;
-using MelonLoader;
 
 namespace APNestClient;
 
@@ -84,7 +84,7 @@ public class MissionEntryGuard
             return true;
         }
 
-        MelonLogger.Msg("[MissionEntryGuard] Blocked entry to '" + mission.MissionID
+        Logger.Msg("[MissionEntryGuard] Blocked entry to '" + mission.MissionID
                         + "' - missing item(s): " + string.Join(", ", missing));
         return false;
     }

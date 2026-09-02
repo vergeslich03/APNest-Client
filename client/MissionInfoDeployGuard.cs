@@ -1,7 +1,7 @@
 using System.Collections.Generic;
+using APNestClient.ModLoader;
 using HarmonyLib;
 using Il2Cpp;
-using MelonLoader;
 
 namespace APNestClient;
 
@@ -24,7 +24,7 @@ public class MissionInfoDeployGuard
             return true;
         }
 
-        MelonLogger.Msg("[MissionInfoDeployGuard] Deploy blocked for '" + card.Mission.MissionID
+        Logger.Msg("[MissionInfoDeployGuard] Deploy blocked for '" + card.Mission.MissionID
                         + "' - missing item(s): " + string.Join(", ", missing));
         return false;
     }

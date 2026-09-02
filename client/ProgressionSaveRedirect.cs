@@ -1,7 +1,7 @@
 using System.IO;
+using APNestClient.ModLoader;
 using HarmonyLib;
 using Il2Cpp;
-using MelonLoader.Utils;
 
 namespace APNestClient;
 
@@ -10,7 +10,7 @@ public class ProgressionSaveRedirect
 {
     static bool Prefix(ref string __result)
     {
-        __result = Path.Combine(MelonEnvironment.UserDataDirectory, "APNestClient", "ProgressionSave");
+        __result = Path.Combine(ModLoaderPaths.DataDirectory, "APNestClient", "ProgressionSave");
         return false;
     }
 }

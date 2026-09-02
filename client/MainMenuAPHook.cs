@@ -1,9 +1,9 @@
 using System;
 using Il2Cpp;
-using MelonLoader;
 using Il2CppTMPro;
 using UnityEngine;
 using UnityEngine.Events;
+using Logger = APNestClient.ModLoader.Logger;
 using Object = UnityEngine.Object;
 
 namespace APNestClient;
@@ -40,7 +40,7 @@ public class MainMenuAPHook
         MissionManager.Instance.MainMenuLoaded += loadHandler;
         MissionManager.Instance.MainMenuUnloaded += unloadHandler;
         _mainMenuHooksRegistered = true;
-        MelonLogger.Msg("[MainMenuAPHook] Subscribed to MainMenuLoaded/Unloaded.");
+        Logger.Msg("[MainMenuAPHook] Subscribed to MainMenuLoaded/Unloaded.");
     }
 
     private void HandleMainMenuLoaded(string sceneName)

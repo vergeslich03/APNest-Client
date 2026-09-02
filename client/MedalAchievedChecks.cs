@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
+using APNestClient.ModLoader;
 using HarmonyLib;
 using Il2Cpp;
 using Il2CppSleepyNodes;
-using MelonLoader;
 
 namespace APNestClient;
 
@@ -40,7 +40,7 @@ public class MedalAchievedChecks
 
                 if (!_lookupTable.TryGetValue(medalTierId, out string apLocationName))
                 {
-                    MelonLogger.Warning(
+                    Logger.Warning(
                         "No AP location mapped for medal '" + medalTierId
                         + "' (raw category id: " + medal.Key + ") - skipping");
                     continue;
