@@ -20,7 +20,7 @@ It should be `~/.local/share/Steam/steamapps/common/Iron Nest Heavy Turret Simul
 `C:\Program Files (x86)\Steam\steamapps\common\Iron Nest Heavy Turret Simulator` or comparable on Windows.
 
 ## How to get the apworld
-The easiest way would be to download it from the release page, right besides the `APNest.dll`.
+The easiest way would be to download it from the release page, right besides the `APNestClient.dll`.
 It's named `iron_nest.apworld`.
 
 You can also visit my fork of the Archipelago repository and download it from that one's release page:
