@@ -13,7 +13,7 @@ namespace APNestClient
         {
             Logger.Msg("APNest Client loaded.");
 
-            _connectUI = new ConnectUI(new ModConfig());
+            _connectUI = new ConnectUI(config);
             _apSession = _connectUI.GetApSession();
             _itemReceiver = new ItemReceiver();
             _mainMenuAPHook = new MainMenuAPHook(_connectUI);
