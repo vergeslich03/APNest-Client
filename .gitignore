@@ -12,3 +12,6 @@ loader.sh
 bin/
 obj/
 *.user
+
+# release archives
+release/

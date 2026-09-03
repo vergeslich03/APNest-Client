@@ -8,19 +8,54 @@ If you want to know more, look here:
 https://archipelago.gg
 
 ## Installation
-To install this Mod, first install MelonLoader in the IRON NEST directory. You can find a guide on how to do that here:
+### MelonLoader
+To install this mod under MelonLoader, first install MelonLoader in the IRON NEST directory. You can find a guide on how to do that here:
 https://github.com/lavagang/melonloader#how-to-use-the-installer
 
-The rest is simple, just download the `APNestClient.dll` from the release page and move/copy it into the `Mods` directory in
-the game's install directory.
+After installing MelonLoader, start the game, this will take a moment, because Melonloader needs to build some files and directories.
+After you are in the main menu quit and proceed to install the mod itself.
+
+This mod is tested with MelonLoader v0.7.3, so i recommend you use that version. It may run with other versions, but no promises.
+
+For the mod itself, download the `APNest-Client-x.x.x-MelonLoader.zip` and extract it into the game's install directory.
+If you have other mods installed, extract it somewhere else and copy the DLL's into their respective folders.
 
 To find that directory via Steam, right click on the game --> Manage --> Browse local files.
 
 It should be `~/.local/share/Steam/steamapps/common/Iron Nest Heavy Turret Simulator` or comparable on Linux and
 `C:\Program Files (x86)\Steam\steamapps\common\Iron Nest Heavy Turret Simulator` or comparable on Windows.
 
+### BepInEx
+To install the mod under BepInEx, first install BepInEx: https://builds.bepinex.dev/projects/bepinex_be
+
+You will need BepInEx 6 bleeding-edge version for Windows (even on Linux, since the game is a Windows build and needs to run behind Proton),
+more specifically:
+
+`BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.788+5b766a3.zip`
+
+Direct link:
+
+https://builds.bepinex.dev/projects/bepinex_be/788/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.788%2B5b766a3.zip
+
+Since bleeding-edge versions are not archived forever, plese use the newest version. But be warned,
+the mod was not tested on another version and may be broken (or the BepInEx build).
+
+Extract BepInEx into the game's install directory and start the game. This will take a moment, because BepInEx needs to
+build some files and directories it needs. After arriving in the main menu, quit and proceed with the install of the mod itself.
+
+To install this mod, download the `APNest-Client-x.x.x-BepInEx.zip` and extract it into the game's install directory.
+
+>[!IMPORTANT]
+> If you play on Linux with Proton, you need to make sure you set the following launch options:
+>  `WINEDLLOVERRIDES="winhttp=n,b" %command%`
+
+> [!WARNING]
+> Whatever you do, do not use both loaders at once, since both loaders hook into the same GameAssembly.
+> Should you for some reason use both, make sure to rename the loader specific DLL's: `version.dll` --> rename to disable MelonLoader,
+> `winhttp.dll` --> rename to disable BepInEx
+
 ## How to get the apworld
-The easiest way would be to download it from the release page, right besides the `APNestClient.dll`.
+The easiest way would be to download it from the release page, right besides the `APNest-Client-x.x.x-Loader.zip`s.
 It's named `iron_nest.apworld`.
 
 You can also visit my fork of the Archipelago repository and download it from that one's release page:
@@ -35,6 +70,7 @@ The latest version is tested for:
 
 - Game: 1.0 (1663)
 - MelonLoader: v0.7.3
+- BepInEx: 6.0.0-be.788+5b766a3 (Unity.IL2CPP, win-x64)
 - Proton: 11.0
 
 ## Usage
@@ -49,16 +85,21 @@ so your actual progress is untouched and will be playable as normal when you rem
 > even when switching back to an old one.
 > I am still trying to find a solution to save the progress in a way it does not get reset.
 
+>[!NOTE]
+> Since BepInEx and MelonLoader have different user dirs, it will look like your progress was reset, should you switch Loaders.
+> If you want to switch loaders, copy the top APNestClient folder from the directory of one Loader to the other: `BepInEx/APNestClient`
+> --> `UserData/APNestClient` for switching to Melon and other direction if you want to switch to BepInEx.
+
 ## Features
 ### Goals
 
 - Mission 15 (White Shells) completed
   - Medal Checks opt-in
-- Bronze/Silver/Gold on all medals in all Misions
+- Bronze/Silver/Gold on all medals in all Missions
 - All Endings
 
 > [!Note]
-> Due to the ~15 Chacks deficit in the Mission Goal, only the bare minimum of shells is guaranteed.
+> Due to the ~15 Checks deficit in the Mission Goal, only the bare minimum of shells is guaranteed.
 > This includes SMK, AP, TEAR and ATMC, as well as utility cards such as 'Emergency Move', 'Scout Plane' and 'Powder Charges'
 > everything else is randomized and not guaranteed to be in the multiworld. If you enable filler or traps in this goal type,
 > only one will be added and replaces another item in the pool.
@@ -107,17 +148,16 @@ in the 'Archipelago Mod' thread in the modding channel on the game's official di
 ## Roadmap
 What do I plan to implement next?
 
-- BepinEx port
 - Displaying sent checks in-game
 - Implementing Death-Link
 - Saving progress for multiple Multiworlds
 
 ## License
-This project is under the MIT License, for more info see [LICENSE.md](./LICENSE.md)
+This project is under the MIT License, for more info see [LICENSE](./LICENSE)
 
 ## AI Disclaimer
 I will be honest with you all, without AI I would never have gotten this project to a working state,
 so credit where credit is due.
 
 This project was made by me (a human) to about 90%. The remaining ~10% — mostly the main-menu UI —
-was done by Claude Sonnet 5, along with most of the referencing, research, and debugging throughout.
+was done by Claude Sonnet 5 and Claude Opus 5, along with most of the referencing, research, and debugging throughout.
