@@ -3,11 +3,9 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using MelonLoader;
-using MelonLoader.Utils;
+using APNestClient.ModLoader;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
-using Il2Cpp;
 
 namespace APNestClient;
 
@@ -21,7 +19,7 @@ public enum APConnectionState
 
 public class APSession
 {
-    public static readonly string DataDirectory = Path.Combine(MelonEnvironment.UserDataDirectory, "APNestClient");
+    public static readonly string DataDirectory = ModLoaderPaths.DataDirectory;
     private readonly string _locationsQueueFile;
     private readonly string _itemIndexFile;
     private readonly string _seedFile;
@@ -95,7 +93,7 @@ public class APSession
             {
                 _connectionState = APConnectionState.Failed;
                 _loginFailureReason = errorResult.Errors[0];
-                MelonLogger.Warning("Failed to connect to Archipelago: " + _loginFailureReason);
+                Logger.Warning("Failed to connect to Archipelago: " + _loginFailureReason);
                 return;
             }
 
@@ -106,7 +104,7 @@ public class APSession
             _medalTier = _slotData.TryGetValue("medal_tier", out var medalTier) ? medalTier.ToString() : "bronze";
             
             _connectionState = APConnectionState.Connected;
-            MelonLogger.Msg("Successfully Connected to Archipelago, have fun!");
+            Logger.Msg("Successfully Connected to Archipelago, have fun!");
 
             BuildGoalChecklist();
             
@@ -120,7 +118,7 @@ public class APSession
             }
             if (File.ReadAllLines(_seedFile)[0] != currentSeed)
             {
-                MelonLogger.Warning("New Seed detected");
+                Logger.Warning("New Seed detected");
 
                 lock (_locationQueueLock)
                 {
@@ -151,7 +149,7 @@ public class APSession
                 File.WriteAllLines(_locationsQueueFile, _queue);
             }
             
-            MelonLogger.Msg("Location Check Queue flushed.");
+            Logger.Msg("Location Check Queue flushed.");
 
             try
             {
@@ -176,7 +174,7 @@ public class APSession
                 itemCounter++;
             }
             
-            MelonLogger.Msg("Pending Items flushed.");
+            Logger.Msg("Pending Items flushed.");
 
             _session.Items.ItemReceived += x => ReceiveItem();
         }
@@ -184,7 +182,7 @@ public class APSession
         {
             _connectionState = APConnectionState.Failed;
             _loginFailureReason = e.Message;
-            MelonLogger.Warning("Failed to open Archipelago Connection: " + e.Message);
+            Logger.Warning("Failed to open Archipelago Connection: " + e.Message);
         }
     }
     
@@ -196,7 +194,7 @@ public class APSession
 
     public void SendLocationChecks(string[] locationNames)
     {
-        MelonLogger.Msg("Sending location checks to Archipelago");
+        Logger.Msg("Sending location checks to Archipelago");
         if (_connectionState == APConnectionState.Connected)
         {
             long[] locationIDs = APNamesToIDs(locationNames);
@@ -210,8 +208,8 @@ public class APSession
                             EnqueueLocation(locationName);
                         }
                         
-                        MelonLogger.Warning("Could not Send location checks.");
-                        MelonLogger.Warning("Reason: " + (t.Exception?.InnerExceptions[0].Message ?? "canceled"));
+                        Logger.Warning("Could not Send location checks.");
+                        Logger.Warning("Reason: " + (t.Exception?.InnerExceptions[0].Message ?? "canceled"));
                     }
                     
                     CheckGoalCompletion();
@@ -221,7 +219,7 @@ public class APSession
             return;
         }
         
-        MelonLogger.Warning("Client Not Connected to Archipelago");
+        Logger.Warning("Client Not Connected to Archipelago");
         foreach (var locationName in locationNames)
         {
             EnqueueLocation(locationName);
@@ -245,7 +243,7 @@ public class APSession
             long id = _session.Locations.GetLocationIdFromName("IRON NEST: Heavy Turret Simulator", name);
             if (id == -1)
             {
-                MelonLogger.Warning("Could not find location ID for: " + name);
+                Logger.Warning("Could not find location ID for: " + name);
                 continue;
             }
             
@@ -326,7 +324,7 @@ public class APSession
         }
         _session.SetGoalAchieved();
         _sentGoal = true;
-        MelonLogger.Msg("Goal achieved, congratulations!");
+        Logger.Msg("Goal achieved, congratulations!");
     }
 
     private void IncreaseHandledItemIndex()

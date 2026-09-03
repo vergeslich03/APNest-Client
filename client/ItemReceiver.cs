@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
-using Il2Cpp;
 using Il2CppInterop.Runtime;
-using Il2CppLocalisation;
-using Il2CppSleepyNodes;
 using Il2CppSystem.Collections.Generic;
-using MelonLoader;
 using UnityEngine;
 using KeyNotFoundException = System.Collections.Generic.KeyNotFoundException;
+using Logger = APNestClient.ModLoader.Logger;
 using Object = UnityEngine.Object;
 using Random = System.Random;
 
@@ -90,12 +87,12 @@ public class ItemReceiver
         }
         catch (KeyNotFoundException)
         {
-            MelonLogger.Error("Unknown Item '" + apItemName + "'");
+            Logger.Error("Unknown Item '" + apItemName + "'");
             return;
         }
         catch (Il2CppException)
         {
-            MelonLogger.Error("Unknown Item '" + apItemName + "'");
+            Logger.Error("Unknown Item '" + apItemName + "'");
             return;
         }
         catch (NullReferenceException)
@@ -132,12 +129,12 @@ public class ItemReceiver
 
     private void HandlePunchcardItem(string punchcardName)
     {
-        MelonLogger.Msg("Processing Punchcard: " + punchcardName);
+        Logger.Msg("Processing Punchcard: " + punchcardName);
 
         // guard against duplicate punchcards
         if (ProgressionManager.Instance.IsCardUnlocked(punchcardName))
         {
-            MelonLogger.Msg("Punchcard already unlocked");
+            Logger.Msg("Punchcard already unlocked");
             return;
         }
 
@@ -157,7 +154,7 @@ public class ItemReceiver
         ProgressionManager.Instance.SaveProgression();
         RequisitionConsoleManager.Instance.AddNewCardsToDeck(punchcardList);
         
-        MelonLogger.Msg("Added Punchcard: " + punchcardName);
+        Logger.Msg("Added Punchcard: " + punchcardName);
     }
 
     private void HandleSpawnItem(string spawnName)
@@ -207,7 +204,7 @@ public class ItemReceiver
 
                 if (spotterId == null)
                 {
-                    MelonLogger.Warning("Could not find Spotter Node");
+                    Logger.Warning("Could not find Spotter Node");
                     break;
                 }
 
@@ -222,7 +219,7 @@ public class ItemReceiver
 
                 if (allyZones.Count == 0)
                 {
-                    MelonLogger.Warning("No Ally zone found, falling back to Zones[0]");
+                    Logger.Warning("No Ally zone found, falling back to Zones[0]");
                     allyZones.Add(MissionManager.Instance.CurrentMission.Zones[0]);
                 }
 
@@ -276,7 +273,7 @@ public class ItemReceiver
 
                 if (convoyId == null)
                 {
-                    MelonLogger.Warning("Could not find LocationReport Node");
+                    Logger.Warning("Could not find LocationReport Node");
                     break;
                 }
 
@@ -291,7 +288,7 @@ public class ItemReceiver
 
                 if (allyZones.Count == 0)
                 {
-                    MelonLogger.Warning("No Ally zone found, falling back to Zones[0]");
+                    Logger.Warning("No Ally zone found, falling back to Zones[0]");
                     allyZones.Add(MissionManager.Instance.CurrentMission.Zones[0]);
                 }
 
@@ -360,7 +357,7 @@ public class ItemReceiver
 
                 if (shell == null)
                 {
-                    MelonLogger.Warning("Shell configured for Trap not found (STARShell)");
+                    Logger.Warning("Shell configured for Trap not found (STARShell)");
                     break;
                 }
                 
@@ -383,7 +380,7 @@ public class ItemReceiver
                 {
                     // game throws Error if the whole magazine is full instead of returning false
                     // Not sure if this is a bug or simply forgotten and handled via try/catch in game
-                    MelonLogger.Msg("Trap Magazine Fill completed");
+                    Logger.Msg("Trap Magazine Fill completed");
                 }
 
                 break;
@@ -405,7 +402,7 @@ public class ItemReceiver
 
                 if (moveTarget == null)
                 {
-                    MelonLogger.Warning("Could not find Move Turret Node (MoveZone)");
+                    Logger.Warning("Could not find Move Turret Node (MoveZone)");
                     break;
                 }
 
@@ -438,7 +435,7 @@ public class ItemReceiver
 
                 if (moveTarget.LocationType == LocationSelection.LocationTypes.Relative)
                 {
-                    MelonLogger.Warning(
+                    Logger.Warning(
                         "Emergency Move card uses unsupported Relative config: RelativeTo="
                         + moveTarget.RelativeTo + " RelativeDirection=" + moveTarget.RelativeDirection);
                     break;
@@ -446,7 +443,7 @@ public class ItemReceiver
 
                 if (moveTarget.LocationType != LocationSelection.LocationTypes.Zone)
                 {
-                    MelonLogger.Warning("Emergency Move card uses unsupported LocationType: " + moveTarget.LocationType);
+                    Logger.Warning("Emergency Move card uses unsupported LocationType: " + moveTarget.LocationType);
                     break;
                 }
 
@@ -462,7 +459,7 @@ public class ItemReceiver
 
                 if (targetZone == null)
                 {
-                    MelonLogger.Warning("Could not find Zone '" + moveTarget.ZoneID + "' for Emergency Move");
+                    Logger.Warning("Could not find Zone '" + moveTarget.ZoneID + "' for Emergency Move");
                     break;
                 }
 
@@ -514,7 +511,7 @@ public class ItemReceiver
 
                 if (enemyZones.Count == 0)
                 {
-                    MelonLogger.Warning("No Enemy zone found, falling back to Zones[0]");
+                    Logger.Warning("No Enemy zone found, falling back to Zones[0]");
                     enemyZones.Add(MissionManager.Instance.CurrentMission.Zones[0]);
                 }
                 
@@ -721,7 +718,7 @@ public class ItemReceiver
 
                 if (startTimerNode != null)
                 {
-                    MelonLogger.Msg("GetOrSpawnCbtTimer: borrowing State_StartTimer from mission '" + missionNode.Mission.MissionID + "'");
+                    Logger.Msg("GetOrSpawnCbtTimer: borrowing State_StartTimer from mission '" + missionNode.Mission.MissionID + "'");
                     break;
                 }
             }

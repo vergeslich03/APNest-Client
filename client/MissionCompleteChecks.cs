@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Il2Cpp;
+using APNestClient.ModLoader;
 using HarmonyLib;
-using MelonLoader;
 
 namespace APNestClient;
 
@@ -15,7 +14,7 @@ public class MissionCompleteChecks
     static void Postfix(MissionManager __instance)
     {
         var currentMission = __instance.CurrentMission.MissionID;
-        MelonLogger.Msg("MissionCompleteCheck: " + currentMission);
+        Logger.Msg("MissionCompleteCheck: " + currentMission);
         LocationCompleted?.Invoke(_lookupTable[currentMission]);
     }
 }

@@ -6,6 +6,7 @@ reference
 # helpers
 build.sh
 build_apworld.py
+loader.sh
 
 # dotnet build output
 bin/

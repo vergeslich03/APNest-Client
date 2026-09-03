@@ -1,17 +1,16 @@
 using System;
 using HarmonyLib;
-using Il2Cpp;
 
 namespace APNestClient;
 
 // this is needed, because I spawn a new instance of the CBTimer, which means, if the game spawns one, there are two
 // instances of the Timer now. So if that happens I destroy my version. and run everything through the game's.
-[HarmonyPatch(typeof(Il2CppSleepyNodes.State_StartTimer), "OnEnter")]
+[HarmonyPatch(typeof(State_StartTimer), "OnEnter")]
 public class CBTimerDuplicationHandler
 {
     private static CounterBatteryTimer _cbTimer = null;
     
-    public static bool Prefix(Il2CppSleepyNodes.State_StartTimer __instance)
+    public static bool Prefix(State_StartTimer __instance)
     {
         try
         {
@@ -29,7 +28,7 @@ public class CBTimerDuplicationHandler
         return true;
     }
 
-    public static void Postfix(Il2CppSleepyNodes.State_StartTimer __instance)
+    public static void Postfix(State_StartTimer __instance)
     {
         if (_cbTimer != null && _cbTimer != CounterBatteryTimer.Instance)
         {

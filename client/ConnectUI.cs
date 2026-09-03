@@ -1,21 +1,16 @@
 using System.Collections.Generic;
-using Il2Cpp;
-using Il2CppTMPro;
-using MelonLoader;
+using APNestClient.ModLoader;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Logger = APNestClient.ModLoader.Logger;
 
 namespace APNestClient;
 
 public class ConnectUI
 {
-    private MelonPreferences_Category _preferenceCategory;
-    
-    private MelonPreferences_Entry<string> _apHost;
-    private MelonPreferences_Entry<int> _apPort;
-    private MelonPreferences_Entry<string> _apSlotName;
+    private readonly ModConfig _modConfig;
     private string _apPassword;
     private APSession _apSession;
 
@@ -30,18 +25,9 @@ public class ConnectUI
     private TMP_InputField _passwordField;
     private TMP_InputField _statusField;
 
-    public ConnectUI()
+    public ConnectUI(ModConfig modConfig)
     {
-        MelonPreferences_Category category = MelonPreferences.CreateCategory("APNestClient");
-        MelonPreferences_Entry<string> apHostEntry = category.CreateEntry("APHost", "localhost");
-        MelonPreferences_Entry<int> apPortEntry = category.CreateEntry("APPort", 38281);
-        MelonPreferences_Entry<string> apSlotEntry = category.CreateEntry("APSlot", "Player1");
-
-        _preferenceCategory = category;
-        
-        _apHost = apHostEntry;
-        _apPort = apPortEntry;
-        _apSlotName = apSlotEntry;
+        _modConfig = modConfig;
         _apPassword = "";
         _apSession =  new APSession();
     }
@@ -157,7 +143,7 @@ public class ConnectUI
         }
         if (_inputSystemSwitcher == null)
         {
-            MelonLogger.Warning("[ConnectUI] InputSystemSwitcher not found — AP clipboard text input will not work.");
+            Logger.Warning("[ConnectUI] InputSystemSwitcher not found — AP clipboard text input will not work.");
         }
 
         RefreshAPConnectionUI();
@@ -316,7 +302,7 @@ public class ConnectUI
 
     public void Persist()
     {
-        _preferenceCategory.SaveToFile();
+        _modConfig.Save();
     }
 
     public void ToggleVisibility()
@@ -351,17 +337,17 @@ public class ConnectUI
 
     public string GetApHost()
     {
-        return _apHost.Value;
+        return _modConfig.Host;
     }
 
     public int GetApPort()
     {
-        return _apPort.Value;
+        return _modConfig.Port;
     }
     
     public string GetApSlotName()
     {
-        return _apSlotName.Value;
+        return _modConfig.SlotName;
     }
 
     public string GetApPassword()
@@ -376,17 +362,17 @@ public class ConnectUI
 
     public void SetApHost(string host)
     {
-        _apHost.Value = host;
+        _modConfig.Host = host;
     }
 
     public void SetApPort(int port)
     {
-        _apPort.Value = port;
+        _modConfig.Port = port;
     }
     
     public void SetApSlotName(string slotName)
     {
-        _apSlotName.Value = slotName;
+        _modConfig.SlotName = slotName;
     }
 
     public void SetApPassword(string password)
