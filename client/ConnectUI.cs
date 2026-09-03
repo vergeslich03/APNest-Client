@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using APNestClient.ModLoader;
-using Il2Cpp;
-using Il2CppTMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;

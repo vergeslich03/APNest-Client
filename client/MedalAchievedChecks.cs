@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using APNestClient.ModLoader;
 using HarmonyLib;
-using Il2Cpp;
-using Il2CppSleepyNodes;
 
 namespace APNestClient;
 

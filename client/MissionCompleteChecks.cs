@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using APNestClient.ModLoader;
-using Il2Cpp;
 using HarmonyLib;
 
 namespace APNestClient;

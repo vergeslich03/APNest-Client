@@ -6,7 +6,6 @@ using System.Linq;
 using APNestClient.ModLoader;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
-using Il2Cpp;
 
 namespace APNestClient;
 

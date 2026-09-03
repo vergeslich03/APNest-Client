@@ -1,6 +1,4 @@
 using System;
-using Il2Cpp;
-using Il2CppTMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using Logger = APNestClient.ModLoader.Logger;
