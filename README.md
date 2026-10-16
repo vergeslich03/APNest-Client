@@ -143,7 +143,7 @@ so your actual progress is untouched and will be playable as normal when you rem
 
 ## Issue/Bug reports
 If you find any issues or bugs related to this mod, please open an issue in this repo or ping me (@vergeslich)
-in the 'Archipelago Mod' thread in the modding channel on the game's official discord.
+in the 'IRON NEST: Heavy Turret Simulator' thread in the `future-game-design` channel on the official Archipelago discord server.
 
 ## Roadmap
 What do I plan to implement next?

@@ -44,7 +44,7 @@ public class APSession
     private bool _sentGoal = false;
     
     public static event Action<string> ItemReceived;
-
+    
     public APSession()
     {
         _locationsQueueFile = Path.Combine(DataDirectory, "LocationsQueue.txt");
