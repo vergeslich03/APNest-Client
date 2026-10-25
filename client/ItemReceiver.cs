@@ -54,7 +54,7 @@ public class ItemReceiver
         _sabotageThisMission =  false;
         
         int count = _itemQueue.Count;
-        for (int i = 0; i < count && _itemQueue.TryDequeue(out string itemName); i++)
+        while (_itemQueue.TryDequeue(out string itemName))
         {
             ProcessAPItem(itemName);
         }
