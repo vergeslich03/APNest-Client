@@ -1,4 +1,5 @@
 using APNestClient.ModLoader;
+using UnityEngine.InputSystem;
 
 namespace APNestClient
 {
@@ -22,6 +23,7 @@ namespace APNestClient
 
             MissionCompleteChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
             MedalAchievedChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
+            DeathLinkSendHook.MissionFailed += () => _apSession.SendDeathLink();
 
             _initialized = true;
         }
@@ -34,6 +36,7 @@ namespace APNestClient
             }
 
             _apSession.ProcessPendingItems();
+            _apSession.ProcessPendingDeathLinks();
             _itemReceiver.RegisterMissionChangedEventHook();
             _itemReceiver.ProcessPendingMissionLoad();
             _mainMenuAPHook.RegisterMainMenuHooks();
