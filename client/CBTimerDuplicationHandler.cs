@@ -4,7 +4,7 @@ using HarmonyLib;
 namespace APNestClient;
 
 // this is needed, because I spawn a new instance of the CBTimer, which means, if the game spawns one, there are two
-// instances of the Timer now. So if that happens I destroy my version. and run everything through the game's.
+// instances of the Timer now. So if that happens I destroy my version and run everything through the game's.
 [HarmonyPatch(typeof(State_StartTimer), "OnEnter")]
 public class CBTimerDuplicationHandler
 {

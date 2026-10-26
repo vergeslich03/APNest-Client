@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using APNestClient.ModLoader;
 using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 
 namespace APNestClient;
@@ -26,16 +27,21 @@ public class APSession
 
     private static object _locationQueueLock = new object();
     private static object _itemIndexLock = new object();
-
-
-    private ConcurrentQueue<string> _queue = new();
+    
+    private ConcurrentQueue<string> _pendingLocations = new();
     private ConcurrentQueue<string> _pendingItemNames = new();
+    private readonly ConcurrentQueue<DeathLink> _pendingDeathLinks = new();
 
     private APConnectionState _connectionState = APConnectionState.Disconnected;
     private string _loginFailureReason;
 
     private ArchipelagoSession _session;
     private Dictionary<string, object> _slotData;
+    
+    private DeathLinkFactory _deathLinkFactory;
+    private DeathLinkService _deathLinkService;
+    private bool _deathLinkEnabled;
+    public static bool PendingRemoteDeathLink;
 
     private int _lastItemIndexHandled = -1;
     private string _goal;
@@ -44,7 +50,7 @@ public class APSession
     private bool _sentGoal = false;
     
     public static event Action<string> ItemReceived;
-
+    
     public APSession()
     {
         _locationsQueueFile = Path.Combine(DataDirectory, "LocationsQueue.txt");
@@ -64,7 +70,7 @@ public class APSession
         string[] persistedQueue = File.ReadAllLines(_locationsQueueFile);
         foreach (string persistedQueueItem in persistedQueue)
         {
-            _queue.Enqueue(persistedQueueItem);
+            _pendingLocations.Enqueue(persistedQueueItem);
         }
     }
 
@@ -84,7 +90,7 @@ public class APSession
                 slotName,
                 ItemsHandlingFlags.IncludeOwnItems,
                 new Version(0, 6, 7),
-                ["AP"],
+                ["AP", "APNest"],
                 null,
                 password
             );
@@ -102,6 +108,7 @@ public class APSession
             
             _goal = _slotData.TryGetValue("goal",  out var goal) ? goal.ToString() : "mission_15";
             _medalTier = _slotData.TryGetValue("medal_tier", out var medalTier) ? medalTier.ToString() : "bronze";
+            _deathLinkEnabled = _slotData.TryGetValue("death_link", out var enabled) && Convert.ToBoolean(enabled);
             
             _connectionState = APConnectionState.Connected;
             Logger.Msg("Successfully Connected to Archipelago, have fun!");
@@ -122,8 +129,8 @@ public class APSession
 
                 lock (_locationQueueLock)
                 {
-                    _queue.Clear();
-                    File.WriteAllLines(_locationsQueueFile, _queue);
+                    _pendingLocations.Clear();
+                    File.WriteAllLines(_locationsQueueFile, _pendingLocations);
                 }
                 
                 _pendingItemNames.Clear();
@@ -137,7 +144,7 @@ public class APSession
             }
             
             List<string> locationBatch = new List<string>();
-            while (_queue.TryDequeue(out string location))
+            while (_pendingLocations.TryDequeue(out string location))
             {
                 locationBatch.Add(location);
             }
@@ -146,7 +153,7 @@ public class APSession
 
             lock (_locationQueueLock)
             {
-                File.WriteAllLines(_locationsQueueFile, _queue);
+                File.WriteAllLines(_locationsQueueFile, _pendingLocations);
             }
             
             Logger.Msg("Location Check Queue flushed.");
@@ -177,6 +184,15 @@ public class APSession
             Logger.Msg("Pending Items flushed.");
 
             _session.Items.ItemReceived += x => ReceiveItem();
+            
+            if (_deathLinkEnabled)
+            {
+                _deathLinkFactory = new DeathLinkFactory(slotName);
+                _deathLinkService = _session.CreateDeathLinkService();
+                _deathLinkService.EnableDeathLink();
+
+                _deathLinkService.OnDeathLinkReceived += deathLink => _pendingDeathLinks.Enqueue(deathLink);
+            }
         }
         catch (Exception e)
         {
@@ -190,6 +206,8 @@ public class APSession
     {
         _session.Socket.DisconnectAsync().GetAwaiter().GetResult();
         _connectionState = APConnectionState.Disconnected;
+        PendingRemoteDeathLink = false;
+        _pendingDeathLinks.Clear();
     }
 
     public void SendLocationChecks(string[] locationNames)
@@ -210,6 +228,12 @@ public class APSession
                         
                         Logger.Warning("Could not Send location checks.");
                         Logger.Warning("Reason: " + (t.Exception?.InnerExceptions[0].Message ?? "canceled"));
+                    } else if (t.IsCompleted)
+                    {
+                        foreach (var locationName in locationNames)
+                        {
+                            Logger.Msg("Sending Location: " + locationName);
+                        }
                     }
                     
                     CheckGoalCompletion();
@@ -230,8 +254,8 @@ public class APSession
     {
         lock (_locationQueueLock)
         {
-            _queue.Enqueue(locationName);
-            File.WriteAllLines(_locationsQueueFile, _queue);
+            _pendingLocations.Enqueue(locationName);
+            File.WriteAllLines(_locationsQueueFile, _pendingLocations);
         }
     }
 
@@ -335,6 +359,71 @@ public class APSession
             List<string> tmpList = new List<string>();
             tmpList.Add(_lastItemIndexHandled.ToString());
             File.WriteAllLines(_itemIndexFile, tmpList);
+        }
+    }
+
+    public void ProcessPendingDeathLinks()
+    {
+        while (_pendingDeathLinks.TryDequeue(out DeathLink deathLink))
+        {
+            ReceiveDeathLink(deathLink);
+        }
+    }
+
+    public void SendDeathLink()
+    {
+        if (!_deathLinkEnabled || PendingRemoteDeathLink) return;
+        
+        DeathLink deathLink = _deathLinkFactory.CreateDeathLink();
+        _deathLinkFactory.AddOwnDLToHandledList(deathLink);
+        _deathLinkService.SendDeathLink(deathLink);
+        
+        Logger.Msg("DeathLink sent: " + deathLink.Cause);
+    }
+
+    public void ReceiveDeathLink(DeathLink deathLink)
+    {
+        if (!_deathLinkEnabled) return;
+        if (_deathLinkFactory.WasHandled(deathLink))
+        {
+            return;
+        }
+        
+        PendingRemoteDeathLink =  true;
+
+        if (
+            TutorialGuard.IsTutorial()
+        )
+        {
+            Logger.Msg("Saved from certain death by ... convenient timing. (DeathLink received while not in mission or doing mission 1 or 2)");
+            PendingRemoteDeathLink = false;
+            return;
+        }
+
+        Il2CppSystem.Collections.Generic.List<string> deathLinkLinesPrimary = new();
+        deathLinkLinesPrimary.Add("----------------------------");
+        deathLinkLinesPrimary.Add("Your Allies have failed you.");
+        deathLinkLinesPrimary.Add("----------------------------");
+
+        Il2CppSystem.Collections.Generic.List<string> deathLinkLinesSecondary = new();
+        deathLinkLinesSecondary.Add("----------------------------");
+        deathLinkLinesSecondary.Add(deathLink.Source + " sent Death-Link:");
+        deathLinkLinesSecondary.Add(deathLink.Cause);
+        deathLinkLinesSecondary.Add("----------------------------");
+        
+        try
+        {
+            TeleprinterHelper.printTextOnPrimary(deathLinkLinesPrimary, Teleprinter.TeleprinterAlarmState.High);
+            TeleprinterHelper.printTextOnSecondary(deathLinkLinesSecondary, Teleprinter.TeleprinterAlarmState.High);
+            CounterBatteryTimer timer = CBHelper.GetOrSpawnCbtTimer();
+            timer.SetTime(5f);
+            timer.StartTimer();
+            Logger.Msg("DeathLink received: " + deathLink.Cause);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e.Message);
+            PendingRemoteDeathLink = false;
         }
     }
 

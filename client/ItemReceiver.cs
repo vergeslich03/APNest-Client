@@ -54,7 +54,7 @@ public class ItemReceiver
         _sabotageThisMission =  false;
         
         int count = _itemQueue.Count;
-        for (int i = 0; i < count && _itemQueue.TryDequeue(out string itemName); i++)
+        while (_itemQueue.TryDequeue(out string itemName))
         {
             ProcessAPItem(itemName);
         }
@@ -497,7 +497,7 @@ public class ItemReceiver
                 // if the game's own trigger fires later in the same mission,
                 // CBTimerDuplicationHandler (Harmony patch on State_StartTimer.OnEnter) destroys whichever instance
                 // goes stale so only one timer survives.
-                CounterBatteryTimer cbtInstance = GetOrSpawnCbtTimer();
+                CounterBatteryTimer cbtInstance = CBHelper.GetOrSpawnCbtTimer();
                 cbtInstance.AddTime(CBT_DEFAULT_TIME);
 
                 List<Zone> enemyZones = new();
@@ -545,26 +545,8 @@ public class ItemReceiver
                 cbtLinesSecondary.Add("ENEMY ARTILLERY SPOTTED IN SECTOR " + gridRef.Location);
                 cbtLinesSecondary.Add("------------------------------------");
 
-                Teleprinter teleprinterPrimary = Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Primary);
-                Teleprinter teleprinterSecondary = Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Secondary);
-                
-                teleprinterPrimary.SignalAlarm(Teleprinter.TeleprinterAlarmState.High);
-                teleprinterSecondary.SignalAlarm(Teleprinter.TeleprinterAlarmState.High);
-
-                teleprinterPrimary
-                    .SubmitLines(
-                        Guid.NewGuid().ToString(),
-                        cbtLinesPrimary.Cast<IEnumerable<string>>(),
-                        null,
-                        false
-                    );
-                teleprinterSecondary
-                    .SubmitLines(
-                        Guid.NewGuid().ToString(),
-                        cbtLinesSecondary.Cast<IEnumerable<string>>(),
-                        null,
-                        false
-                    );
+                TeleprinterHelper.printTextOnPrimary(cbtLinesPrimary, Teleprinter.TeleprinterAlarmState.High);
+                TeleprinterHelper.printTextOnSecondary(cbtLinesPrimary, Teleprinter.TeleprinterAlarmState.High);
                 
                 cbtInstance.StartTimer();
 
@@ -573,8 +555,7 @@ public class ItemReceiver
             case "TrapSabotage":
             {
                 // bail out on those two missions, since the right gun valves cannot be repaired.
-                if (MissionManager.Instance.CurrentMission.MissionID == "Hospital False Flag" ||
-                    MissionManager.Instance.CurrentMission.MissionID == "ceremony and HCHE")
+                if (TutorialGuard.IsTutorial())
                 {
                     throw new NullReferenceException("valves on right gun cannot be repaired in Mission 1 or 2");
                 }
@@ -616,26 +597,8 @@ public class ItemReceiver
                 sabotageLinesSecondary.Add("PRESSURE DROPS IN SEVERAL CRITICAL SYSTEMS DETECTED");
                 sabotageLinesSecondary.Add("----------------------------------------------------");
                 
-                Teleprinter teleprinterPrimary = Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Primary);
-                Teleprinter teleprinterSecondary = Teleprinter.GetTeleprinter(Teleprinter.Teleprinters.Secondary);
-                
-                teleprinterPrimary.SignalAlarm(Teleprinter.TeleprinterAlarmState.High);
-                teleprinterSecondary.SignalAlarm(Teleprinter.TeleprinterAlarmState.High);
-
-                teleprinterPrimary
-                    .SubmitLines(
-                        Guid.NewGuid().ToString(),
-                        sabotageLinesPrimary.Cast<IEnumerable<string>>(),
-                        null,
-                        false
-                    );
-                teleprinterSecondary
-                    .SubmitLines(
-                        Guid.NewGuid().ToString(),
-                        sabotageLinesSecondary.Cast<IEnumerable<string>>(),
-                        null,
-                        false
-                    );
+                TeleprinterHelper.printTextOnPrimary(sabotageLinesPrimary, Teleprinter.TeleprinterAlarmState.High);
+                TeleprinterHelper.printTextOnSecondary(sabotageLinesSecondary, Teleprinter.TeleprinterAlarmState.High);
                 
                 break;
             }
@@ -670,81 +633,5 @@ public class ItemReceiver
 
         _pendingMissionLoad = false;
         DrainQueue();
-    }
-
-    // Returns the live CounterBatteryTimer for the current mission, spawning it if the mission has a
-    // State_StartTimer node but its in-mission trigger hasn't fired yet. Returns null
-    // if there's no such node at all this mission (e.g. missions 1/3).
-    private CounterBatteryTimer GetOrSpawnCbtTimer()
-    {
-        if (CounterBatteryTimer.Instance != null)
-        {
-            return CounterBatteryTimer.Instance;
-        }
-
-        if (MissionManager.Instance == null || MissionManager.Instance.CurrentMission == null)
-        {
-            return null;
-        }
-
-        State_StartTimer startTimerNode = null;
-        foreach (Node node in MissionManager.Instance.CurrentMission.nodes)
-        {
-            startTimerNode = node.TryCast<State_StartTimer>();
-            if (startTimerNode != null)
-            {
-                break;
-            }
-        }
-
-        // Mission 3 has no State_StartTimer node of its own, so I borrow one from another mission's graph
-        if (startTimerNode == null && MissionManager.Instance.CurrentOperation != null)
-        {
-            foreach (MissionNode missionNode in MissionManager.Instance.CurrentOperation.Missions)
-            {
-                if (missionNode.Mission == null || missionNode.Mission == MissionManager.Instance.CurrentMission)
-                {
-                    continue;
-                }
-
-                foreach (Node node in missionNode.Mission.nodes)
-                {
-                    startTimerNode = node.TryCast<State_StartTimer>();
-                    if (startTimerNode != null)
-                    {
-                        break;
-                    }
-                }
-
-                if (startTimerNode != null)
-                {
-                    Logger.Msg("GetOrSpawnCbtTimer: borrowing State_StartTimer from mission '" + missionNode.Mission.MissionID + "'");
-                    break;
-                }
-            }
-        }
-
-        if (startTimerNode == null || startTimerNode.Prefab_BatteryTimer == null)
-        {
-            return null;
-        }
-
-        CounterBatteryTimer spawned = UnityEngine.Object.Instantiate(startTimerNode.Prefab_BatteryTimer);
-        spawned.Init(startTimerNode.InitalTime);
-
-        // Missions without a native CB encounter (e.g. mission 3) still have a static,
-        // closed "Timer Hatch" prop baked into the base scene decorating the empty mount.
-        // My spawned prefab brings its own hatch to the same slot, so disable the static one to stop the two from
-        // overlapping/clipping into each other.
-        foreach (Transform t in UnityEngine.Object.FindObjectsOfType<Transform>(true))
-        {
-            if (t.gameObject.name == "Timer Hatch" && t.parent == null)
-            {
-                t.gameObject.SetActive(false);
-                break;
-            }
-        }
-
-        return spawned;
     }
 }

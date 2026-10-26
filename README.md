@@ -37,8 +37,8 @@ Direct link:
 
 https://builds.bepinex.dev/projects/bepinex_be/788/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.788%2B5b766a3.zip
 
-Since bleeding-edge versions are not archived forever, plese use the newest version. But be warned,
-the mod was not tested on another version and may be broken (or the BepInEx build).
+Since bleeding-edge versions are not archived forever, please use the newest version. But be warned,
+the mod was not tested on another version and may be broken on it.
 
 Extract BepInEx into the game's install directory and start the game. This will take a moment, because BepInEx needs to
 build some files and directories it needs. After arriving in the main menu, quit and proceed with the install of the mod itself.
@@ -107,6 +107,8 @@ so your actual progress is untouched and will be playable as normal when you rem
 > [!WARNING]
 > Due to some missions having impossible Gold Medals, the 'All Gold Medals' goal is currently not achievable.
 > For more info look here: https://steamcommunity.com/sharedfiles/filedetails/?id=3779182733
+>
+> As of `Patch #8` this issue should be fixed.
 
 ### Locations
 
@@ -118,8 +120,8 @@ so your actual progress is untouched and will be playable as normal when you rem
 
 - AP, SMK, TEAR and ATMC Shell Punchcards
 - Powder Charges Punchcard
-- Scout Plane punchcard
-- Emergency Move punchcard
+- Scout Plane Punchcard
+- Emergency Move Punchcard
 
 #### Useful
 
@@ -143,13 +145,12 @@ so your actual progress is untouched and will be playable as normal when you rem
 
 ## Issue/Bug reports
 If you find any issues or bugs related to this mod, please open an issue in this repo or ping me (@vergeslich)
-in the 'Archipelago Mod' thread in the modding channel on the game's official discord.
+in the `IRON NEST: Heavy Turret Simulator` thread in the `custom-games` channel on the official Archipelago discord server.
 
 ## Roadmap
 What do I plan to implement next?
 
 - Displaying sent checks in-game
-- Implementing Death-Link
 - Saving progress for multiple Multiworlds
 
 ## License
