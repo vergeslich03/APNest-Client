@@ -386,8 +386,6 @@ public class APSession
         if (!_deathLinkEnabled) return;
         if (_deathLinkFactory.WasHandled(deathLink))
         {
-            // TODO: DEBUG
-            Logger.Msg("[DeathLink] dropped as already handled: " + deathLink.Source + " @ " + deathLink.Timestamp);
             return;
         }
         
@@ -418,10 +416,6 @@ public class APSession
             TeleprinterHelper.printTextOnPrimary(deathLinkLinesPrimary, Teleprinter.TeleprinterAlarmState.High);
             TeleprinterHelper.printTextOnSecondary(deathLinkLinesSecondary, Teleprinter.TeleprinterAlarmState.High);
             CounterBatteryTimer timer = CBHelper.GetOrSpawnCbtTimer();
-            // TODO: DEBUG
-            Logger.Msg("[DeathLink] timer before: running=" + timer.IsRunning + " expired=" + timer.IsExpired +
-                       " permStopped=" + timer.IsPermanentlyStopped + " remaining=" + timer.TimeRemaining +
-                       " missionFailed=" + MissionManager.Instance.CurrentMissionState?.Failed);
             timer.SetTime(5f);
             timer.StartTimer();
             Logger.Msg("DeathLink received: " + deathLink.Cause);
