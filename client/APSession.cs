@@ -185,6 +185,8 @@ public class APSession
 
             _session.Items.ItemReceived += x => ReceiveItem();
             
+            //TODO: DEBUG
+            _deathLinkEnabled = true;
             if (_deathLinkEnabled)
             {
                 _deathLinkFactory = new DeathLinkFactory(slotName);
@@ -192,6 +194,8 @@ public class APSession
                 _deathLinkService.EnableDeathLink();
 
                 _deathLinkService.OnDeathLinkReceived += deathLink => _pendingDeathLinks.Enqueue(deathLink);
+                
+                Logger.Msg("Death-Link enabled, watch for friendly fire.");
             }
         }
         catch (Exception e)
