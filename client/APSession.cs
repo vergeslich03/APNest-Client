@@ -192,6 +192,8 @@ public class APSession
                 _deathLinkService.EnableDeathLink();
 
                 _deathLinkService.OnDeathLinkReceived += deathLink => _pendingDeathLinks.Enqueue(deathLink);
+                
+                Logger.Msg("Death-Link enabled, watch for friendly fire.");
             }
         }
         catch (Exception e)
@@ -416,8 +418,12 @@ public class APSession
             TeleprinterHelper.printTextOnPrimary(deathLinkLinesPrimary, Teleprinter.TeleprinterAlarmState.High);
             TeleprinterHelper.printTextOnSecondary(deathLinkLinesSecondary, Teleprinter.TeleprinterAlarmState.High);
             CounterBatteryTimer timer = CBHelper.GetOrSpawnCbtTimer();
+            
+            if (!timer.IsRunning)
+            {
+                timer.StartTimer();
+            }
             timer.SetTime(5f);
-            timer.StartTimer();
             Logger.Msg("DeathLink received: " + deathLink.Cause);
         }
         catch (Exception e)
