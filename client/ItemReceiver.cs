@@ -71,6 +71,9 @@ public class ItemReceiver
         {
             string itemName = _lookupTable.ApItemNameToGameIdTable[apItemName];
 
+            Logger.Msg("Received Item: " + apItemName);
+
+            
             if (itemName.StartsWith("Spawn"))
             {
                 HandleSpawnItem(itemName);
