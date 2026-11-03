@@ -185,8 +185,6 @@ public class APSession
 
             _session.Items.ItemReceived += x => ReceiveItem();
             
-            //TODO: DEBUG
-            _deathLinkEnabled = true;
             if (_deathLinkEnabled)
             {
                 _deathLinkFactory = new DeathLinkFactory(slotName);
@@ -420,8 +418,12 @@ public class APSession
             TeleprinterHelper.printTextOnPrimary(deathLinkLinesPrimary, Teleprinter.TeleprinterAlarmState.High);
             TeleprinterHelper.printTextOnSecondary(deathLinkLinesSecondary, Teleprinter.TeleprinterAlarmState.High);
             CounterBatteryTimer timer = CBHelper.GetOrSpawnCbtTimer();
+            
+            if (!timer.IsRunning)
+            {
+                timer.StartTimer();
+            }
             timer.SetTime(5f);
-            timer.StartTimer();
             Logger.Msg("DeathLink received: " + deathLink.Cause);
         }
         catch (Exception e)
