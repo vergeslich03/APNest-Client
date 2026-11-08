@@ -249,7 +249,7 @@ public class LookupTables
             mission3List.Add("PowderCharges");
             
             List<string> mission6List = new();
-            mission6List.Add("SMKShell");
+            mission6List.Add("SMOKEShell");
 
             List<string> mission9List = new();
             mission9List.Add("TEARShell");
