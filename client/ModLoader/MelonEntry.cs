@@ -2,7 +2,7 @@
 using APNestClient.ModLoader;
 using MelonLoader;
 
-[assembly:MelonInfo(typeof(APNestClient.MelonEntry), "APNest-Client", "0.3.1", "vergeslich03")]
+[assembly:MelonInfo(typeof(APNestClient.MelonEntry), "APNest-Client", "0.3.2", "vergeslich03")]
 
 namespace APNestClient;
 
