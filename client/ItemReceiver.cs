@@ -156,8 +156,22 @@ public class ItemReceiver
         }
         ProgressionManager.Instance.SaveProgression();
         RequisitionConsoleManager.Instance.AddNewCardsToDeck(punchcardList);
-        
+
         Logger.Msg("Added Punchcard: " + punchcardName);
+
+        RefreshMapCards();
+    }
+
+    // refresh mission map, so unlocks may be visible on mission finish
+    private static void RefreshMapCards()
+    {
+        MapCardManager mapCardManager = Object.FindObjectOfType<MapCardManager>();
+        if (mapCardManager == null)
+        {
+            return;
+        }
+
+        mapCardManager.UpdateMapCards();
     }
 
     private void HandleSpawnItem(string spawnName)
