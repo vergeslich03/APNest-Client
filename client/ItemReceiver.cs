@@ -25,9 +25,7 @@ public class ItemReceiver
     private LookupTables _lookupTable;
 
     private ConcurrentQueue<string> _itemQueue = new();
-    private bool _missionChangedSubscribed;
-    private volatile bool _pendingMissionLoad;
-    private volatile string _pendingMissionId;
+    private int _drainedMissionGeneration;
 
     private bool _sabotageThisMission = false;
 
@@ -51,9 +49,6 @@ public class ItemReceiver
 
     private void DrainQueue()
     {
-        _sabotageThisMission =  false;
-        
-        int count = _itemQueue.Count;
         while (_itemQueue.TryDequeue(out string itemName))
         {
             ProcessAPItem(itemName);
@@ -356,6 +351,13 @@ public class ItemReceiver
 
     private void HandleTrapItem(string trapName)
     {
+        // traps touch a lot of live scene state (engine, valves, shell pool, map entities, etc.),
+        // so they must only fire in a fully initialized, still running mission.
+        if (!MissionReadyGuard.IsReady())
+        {
+            throw new NullReferenceException("Mission not ready for traps");
+        }
+
         switch (trapName)
         {
             case "TrapFillMagazine":
@@ -500,8 +502,7 @@ public class ItemReceiver
             case "TrapCounterBattery":
             {
                 // bail out on those two missions, since they are not built for CB and do not have the ordnance for it.
-                if (MissionManager.Instance.CurrentMission.MissionID == "Hospital False Flag" ||
-                    MissionManager.Instance.CurrentMission.MissionID == "ceremony and HCHE")
+                if (TutorialGuard.IsTutorial())
                 {
                     throw new NullReferenceException("Mission 1 or 2 are not completable with CBT");
                 }
@@ -589,16 +590,30 @@ public class ItemReceiver
                     throw new NullReferenceException("Sabotaged already");
                 }
                 
-                _sabotageThisMission = true;
-                
                 DieselEngineStateRelay relay = Object.FindFirstObjectByType<DieselEngineStateRelay>();
-                relay.ForceEngineOff();
+                if (relay == null)
+                {
+                    throw new NullReferenceException("DieselEngineStateRelay not found");
+                }
 
+                // pick the valves before changing any state, so a failure doesn't leave a half-applied sabotage
                 Random rand = new();
                 int numOfSabotagedValves = rand.Next(VALVE_SABOTAGE_MIN, VALVE_SABOTAGE_MAX + 1);// + 1 because it's excluding
+                System.Collections.Generic.List<ValveController> valves = new();
                 for (int i = 0; i < numOfSabotagedValves; i++)
                 {
                     ValveController valve = HighPressureSystemManager.GetRandomRegisteredValveAcrossAllSystems();
+                    if (valve == null)
+                    {
+                        throw new NullReferenceException("No valid registered valve found");
+                    }
+                    valves.Add(valve);
+                }
+
+                _sabotageThisMission = true;
+                relay.ForceEngineOff();
+                foreach (ValveController valve in valves)
+                {
                     valve.DamageValve();
                 }
                 
@@ -622,33 +637,17 @@ public class ItemReceiver
         }
     }
 
-    public void RegisterMissionChangedEventHook()
-    {
-        if (_missionChangedSubscribed || MissionManager.Instance == null)
-        {
-            return;
-        }
-
-        Action<MissionGraph, MissionGraph> handler = (from, to) =>
-        {
-            if (to != null)
-            {
-                _pendingMissionId = to.MissionID;
-                _pendingMissionLoad = true;
-            }
-        };
-        MissionManager.Instance.MissionChanged += handler;
-        _missionChangedSubscribed = true;
-    }
-    
+    // drains the item queue once per mission, as soon as that mission is fully initialized
     public void ProcessPendingMissionLoad()
     {
-        if (!_pendingMissionLoad)
+        int generation = MissionReadyGuard.MissionGeneration;
+        if (generation == _drainedMissionGeneration || !MissionReadyGuard.IsReady())
         {
             return;
         }
 
-        _pendingMissionLoad = false;
+        _drainedMissionGeneration = generation;
+        _sabotageThisMission = false;
         DrainQueue();
     }
 }
