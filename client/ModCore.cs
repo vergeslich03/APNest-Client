@@ -37,7 +37,7 @@ namespace APNestClient
 
             _apSession.ProcessPendingItems();
             _apSession.ProcessPendingDeathLinks();
-            _itemReceiver.RegisterMissionChangedEventHook();
+            MissionReadyGuard.RegisterMissionChangedEventHook();
             _itemReceiver.ProcessPendingMissionLoad();
             _mainMenuAPHook.RegisterMainMenuHooks();
         }
