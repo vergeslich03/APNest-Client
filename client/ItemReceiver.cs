@@ -49,7 +49,10 @@ public class ItemReceiver
 
     private void DrainQueue()
     {
-        while (_itemQueue.TryDequeue(out string itemName))
+        // only process what was queued before this drain started. Items that cannot be handled yet
+        // are re-enqueued by ProcessAPItem, and must wait for the next mission instead of being dequeued again in the same loop.
+        int itemsToProcess = _itemQueue.Count;
+        for (int i = 0; i < itemsToProcess && _itemQueue.TryDequeue(out string itemName); i++)
         {
             ProcessAPItem(itemName);
         }
