@@ -68,7 +68,7 @@ or manually edit the template yaml from this repo's release page or the Archipel
 ## Compatibility
 The latest version is tested for:
 
-- Game: 1.0 (1663)
+- Game: 1.0 (1742)
 - MelonLoader: v0.7.3
 - BepInEx: 6.0.0-be.788+5b766a3 (Unity.IL2CPP, win-x64)
 - Proton: 11.0

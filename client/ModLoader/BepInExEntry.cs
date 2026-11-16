@@ -8,7 +8,7 @@ using Logger = APNestClient.ModLoader.Logger;
 
 namespace APNestClient;
 
-[BepInPlugin(Guid, "APNest-Client", "0.4.0")]
+[BepInPlugin(Guid, "APNest-Client", "0.4.1")]
 public class BepInExEntry : BasePlugin
 {
     private const string Guid = "vergeslich03.apnestclient";

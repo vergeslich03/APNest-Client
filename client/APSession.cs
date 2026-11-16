@@ -286,6 +286,12 @@ public class APSession
         _pendingItemNames.Enqueue(itemName);
     }
 
+    // DEBUG ONLY - injects an item as if it had just arrived from the server
+    public void DebugEnqueueItem(string apItemName)
+    {
+        _pendingItemNames.Enqueue(apItemName);
+    }
+
     public void ProcessPendingItems()
     {
         while (_pendingItemNames.TryDequeue(out string itemName))
