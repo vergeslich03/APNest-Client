@@ -2,7 +2,6 @@ using System;
 using Il2CppSystem.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.InputSystem;
 using Logger = APNestClient.ModLoader.Logger;
 using Object = UnityEngine.Object;
 
@@ -94,8 +93,6 @@ public static class TertiaryTeleprinter
         GameObject clone = CloneIntoRig(source.gameObject, radio, rig.transform);
         clone.name = "AP Orders"; // Orders is the moving paper
         Vector3 initial = source._initialPaperLocalPos;
-        Logger.Msg("Tertiary teleprinter: Secondary Orders local " + source.transform.localPosition.ToString("F3") +
-                   ", initial " + initial.ToString("F3"));
         if (initial != Vector3.zero)
         {
             clone.transform.localPosition = initial;
@@ -238,20 +235,11 @@ public static class TertiaryTeleprinter
         float paperLeft = paper.localPosition.x + paperWidth / 2f;
         float width = paperWidth - 2f * PaperMargin;
 
-        Logger.Msg("Tertiary teleprinter: text rect before fit pivot=" + rect.pivot.ToString("F2") +
-                   " sizeDelta=" + rect.sizeDelta.ToString("F3") + " rect=" + rect.rect.ToString() +
-                   ", paper width " + paperWidth.ToString("F3"));
-
         rect.sizeDelta = new Vector2(width, rect.sizeDelta.y);
 
         TMP_Text tmp = orders.GetComponent<TMP_Text>();
         if (tmp != null)
         {
-            Logger.Msg("Tertiary teleprinter: tmp margin=" + tmp.margin.ToString("F3") +
-                       " wordWrapping=" + tmp.enableWordWrapping +
-                       " overflow=" + tmp.overflowMode +
-                       " autoSize=" + tmp.enableAutoSizing +
-                       " alignment=" + tmp.alignment);
             tmp.margin = Vector4.zero;
             tmp.enableWordWrapping = true;
         }
