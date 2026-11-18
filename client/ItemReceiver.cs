@@ -17,6 +17,12 @@ public class ItemReceiver
     private const string CB_DEFAULT_ID = "APArtillery";
     private const int VALVE_SABOTAGE_MIN = 2;
     private const int VALVE_SABOTAGE_MAX = 5;
+
+    // only keeps a few entries for traps, that can only be triggered once per mission
+    // originally debugging for Issue #22, but good nonetheless as to not make it too repetetive
+    // I imagine starting every mission with closing valves and starting the engine gets old fast
+    private const int ONCE_PER_MISSION_TRAP_QUEUE_LIMIT = 3;
+    private static readonly System.Collections.Generic.HashSet<string> OncePerMissionTraps = new() { "TrapSabotage" };
     
     
     private string _itemQueueFile;
@@ -29,22 +35,73 @@ public class ItemReceiver
 
     private bool _sabotageThisMission = false;
 
+    // while draining, re-queued items are only written to disk once at the end of the drain to conserve resources
+    private bool _draining;
+    private int _droppedDuringDrain;
+
     public ItemReceiver()
     {
         _itemQueueFile = Path.Combine(APSession.DataDirectory, "ItemQueue.txt");
 
         _lookupTable = new LookupTables(LookupTables.TableType.Items);
         APSession.ItemReceived += itemName => ProcessAPItem(itemName);
+        APSession.SeedChanged += ClearQueue;
 
         if (!File.Exists(_itemQueueFile))
         {
             File.Create(_itemQueueFile).Close();
         }
 
+        int dropped = 0;
         foreach (string queuedItem in File.ReadAllLines(_itemQueueFile))
         {
-            _itemQueue.Enqueue(queuedItem);
+            if (!TryEnqueue(queuedItem))
+            {
+                dropped++;
+            }
         }
+
+        if (dropped > 0)
+        {
+            Logger.Warning("Dropped " + dropped + " surplus once-per-mission traps from the Item Queue");
+            File.WriteAllLines(_itemQueueFile, _itemQueue);
+        }
+    }
+
+    // enqueues the item unless it is a once-per-mission trap that is already queued often enough
+    private bool TryEnqueue(string apItemName)
+    {
+        if (_lookupTable.ApItemNameToGameIdTable.TryGetValue(apItemName, out string gameId)
+            && OncePerMissionTraps.Contains(gameId))
+        {
+            int alreadyQueued = 0;
+            foreach (string queuedItem in _itemQueue)
+            {
+                if (queuedItem == apItemName)
+                {
+                    alreadyQueued++;
+                }
+            }
+
+            if (alreadyQueued >= ONCE_PER_MISSION_TRAP_QUEUE_LIMIT)
+            {
+                return false;
+            }
+        }
+
+        _itemQueue.Enqueue(apItemName);
+        return true;
+    }
+
+    private void ClearQueue()
+    {
+        lock (_itemQueueLock)
+        {
+            _itemQueue.Clear();
+            File.WriteAllLines(_itemQueueFile, _itemQueue);
+        }
+
+        Logger.Msg("Item Queue cleared for new seed.");
     }
 
     private void DrainQueue()
@@ -52,9 +109,23 @@ public class ItemReceiver
         // only process what was queued before this drain started. Items that cannot be handled yet
         // are re-enqueued by ProcessAPItem, and must wait for the next mission instead of being dequeued again in the same loop.
         int itemsToProcess = _itemQueue.Count;
-        for (int i = 0; i < itemsToProcess && _itemQueue.TryDequeue(out string itemName); i++)
+        _draining = true;
+        _droppedDuringDrain = 0;
+        try
         {
-            ProcessAPItem(itemName);
+            for (int i = 0; i < itemsToProcess && _itemQueue.TryDequeue(out string itemName); i++)
+            {
+                ProcessAPItem(itemName);
+            }
+        }
+        finally
+        {
+            _draining = false;
+        }
+
+        if (_droppedDuringDrain > 0)
+        {
+            Logger.Warning("Dropped " + _droppedDuringDrain + " surplus once-per-mission traps from the Item Queue");
         }
 
         lock (_itemQueueLock)
@@ -98,7 +169,24 @@ public class ItemReceiver
         }
         catch (NullReferenceException)
         {
-            _itemQueue.Enqueue(apItemName);
+            if (!TryEnqueue(apItemName))
+            {
+                if (_draining)
+                {
+                    _droppedDuringDrain++;
+                }
+                else
+                {
+                    Logger.Warning("Dropped '" + apItemName + "', already queued " + ONCE_PER_MISSION_TRAP_QUEUE_LIMIT + " times");
+                }
+                return;
+            }
+
+            if (_draining)
+            {
+                return;
+            }
+
             lock (_itemQueueLock)
             {
                 File.WriteAllLines(_itemQueueFile, _itemQueue);
