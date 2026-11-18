@@ -42,6 +42,8 @@ public class APSession
     private DeathLinkService _deathLinkService;
     private bool _deathLinkEnabled;
     public static bool PendingRemoteDeathLink;
+    
+    private APMessagePrinter _messagePrinter;
 
     private int _lastItemIndexHandled = -1;
     private string _goal;
@@ -114,6 +116,9 @@ public class APSession
             Logger.Msg("Successfully Connected to Archipelago, have fun!");
 
             BuildGoalChecklist();
+
+            _messagePrinter = new APMessagePrinter(slotName);
+            _session.MessageLog.OnMessageReceived += message => _messagePrinter.Enqueue(message);
             
             string currentSeed = _session.RoomState.Seed;
             if (!File.Exists(_seedFile))
@@ -210,6 +215,7 @@ public class APSession
         _connectionState = APConnectionState.Disconnected;
         PendingRemoteDeathLink = false;
         _pendingDeathLinks.Clear();
+        _messagePrinter =  null;
     }
 
     public void SendLocationChecks(string[] locationNames)
@@ -453,4 +459,6 @@ public class APSession
     {
         return _loginFailureReason;
     }
+
+    public void ProcessPendingAPMessages() => _messagePrinter?.Print();
 }
