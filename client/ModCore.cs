@@ -1,5 +1,4 @@
 using APNestClient.ModLoader;
-using UnityEngine.InputSystem;
 
 namespace APNestClient
 {
@@ -37,9 +36,11 @@ namespace APNestClient
 
             _apSession.ProcessPendingItems();
             _apSession.ProcessPendingDeathLinks();
+            _apSession.ProcessPendingAPMessages();
             MissionReadyGuard.RegisterMissionChangedEventHook();
             _itemReceiver.ProcessPendingMissionLoad();
             _mainMenuAPHook.RegisterMainMenuHooks();
+            TertiaryTeleprinter.Tick();
         }
     }
 }
