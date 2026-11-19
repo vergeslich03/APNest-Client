@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using APNestClient.Data;
 using APNestClient.ModLoader;
 using HarmonyLib;
 
@@ -9,7 +10,8 @@ namespace APNestClient;
 public class MedalAchievedChecks
 {
     public static event Action<string> LocationCompleted;
-    private static Dictionary<string, string> _lookupTable = new LookupTables(LookupTables.TableType.MedalLocations).MedalNameToAPLocationNameTable;
+
+    private static IReadOnlyDictionary<string, string> _medalLookupDict = DataHolders.MedalLocationsByGameKey;
     
     static void Prefix(MissionManager __instance,
         out (MissionGraph mission, MissionManager.MissionState state) __state)
@@ -36,13 +38,15 @@ public class MedalAchievedChecks
                 MedalTier tier = (MedalTier)type;
                 string medalTierId = __state.mission.MissionID + "-" + displayName + "-" + tier;
 
-                if (!_lookupTable.TryGetValue(medalTierId, out string apLocationName))
+                if (!_medalLookupDict.ContainsKey(medalTierId))
                 {
                     Logger.Warning(
                         "No AP location mapped for medal '" + medalTierId
                         + "' (raw category id: " + medal.Key + ") - skipping");
                     continue;
                 }
+
+                string apLocationName = _medalLookupDict[medalTierId];
 
                 LocationCompleted?.Invoke(apLocationName);
             }
