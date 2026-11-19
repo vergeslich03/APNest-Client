@@ -1,3 +1,8 @@
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using UnityEngine.InputSystem;
+
 namespace APNestClient.Data;
 
 public enum ItemType
@@ -119,4 +124,19 @@ public static class DataHolders
         new("Trap - Sabotage", "TrapSabotage", ItemType.Trap),
         new("Trap - Counter-Battery", "TrapCounterBattery", ItemType.Trap),
     };
+    
+    // indexing helpers
+    public static readonly IReadOnlyDictionary<string, MissionInfo> MissionsByGameId = Missions.ToImmutableDictionary(m => m.GameId);
+    public static readonly IReadOnlyDictionary<string, ItemInfo> ItemsByApName = Items.ToImmutableDictionary(i => i.APName);
+    public static readonly IReadOnlyDictionary<string, ItemInfo> ItemsByGameId = Items.ToImmutableDictionary(i => i.GameId);
+
+    public static readonly IReadOnlyDictionary<string, string> MedalLocationsByGameKey = (
+        from mission in Missions
+        from medal in mission.Medals
+        from tier in new[] { "Bronze", "Silver", "Gold" }
+        select (
+            Key: $"{mission.GameId}-{medal.DisplayName}-{tier}",
+            Ap: $"{mission.APName} - {medal.Abbreviation} {tier}"
+        )
+    ).ToImmutableDictionary(x => x.Key, x => x.Ap);
 }
