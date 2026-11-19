@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using APNestClient.Data;
 using APNestClient.ModLoader;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
@@ -330,8 +331,8 @@ public class APSession
             }
             case "all_medals":
             {
-                LookupTables lookuptable = new LookupTables(LookupTables.TableType.MedalLocations);
-                foreach ((string medal, string check) in lookuptable.MedalNameToAPLocationNameTable)
+                IReadOnlyDictionary<string, string> medals = DataHolders.MedalLocationsByGameKey;
+                foreach ((string medal, string check) in medals)
                 {
                     string medalLower = check.ToLower();
                     if (medalLower.EndsWith(_medalTier) && !medalLower.StartsWith("mission 15"))

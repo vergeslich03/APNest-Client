@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using APNestClient.Data;
 using Il2CppInterop.Runtime;
 using Il2CppSystem.Collections.Generic;
 using UnityEngine;
@@ -28,7 +29,7 @@ public class ItemReceiver
     private string _itemQueueFile;
     private object _itemQueueLock = new();
 
-    private LookupTables _lookupTable;
+    private IReadOnlyDictionary<string, ItemInfo> _items;
 
     private ConcurrentQueue<string> _itemQueue = new();
     private int _drainedMissionGeneration;
@@ -43,7 +44,7 @@ public class ItemReceiver
     {
         _itemQueueFile = Path.Combine(APSession.DataDirectory, "ItemQueue.txt");
 
-        _lookupTable = new LookupTables(LookupTables.TableType.Items);
+        System.Collections.Generic.IReadOnlyDictionary<string, ItemInfo> _items = DataHolders.ItemsByApName;
         APSession.ItemReceived += itemName => ProcessAPItem(itemName);
         APSession.SeedChanged += ClearQueue;
 
@@ -71,21 +72,25 @@ public class ItemReceiver
     // enqueues the item unless it is a once-per-mission trap that is already queued often enough
     private bool TryEnqueue(string apItemName)
     {
-        if (_lookupTable.ApItemNameToGameIdTable.TryGetValue(apItemName, out string gameId)
-            && OncePerMissionTraps.Contains(gameId))
+        if (_items.ContainsKey(apItemName))
         {
-            int alreadyQueued = 0;
-            foreach (string queuedItem in _itemQueue)
-            {
-                if (queuedItem == apItemName)
-                {
-                    alreadyQueued++;
-                }
-            }
+            string gameId = _items[apItemName].GameId;
 
-            if (alreadyQueued >= ONCE_PER_MISSION_TRAP_QUEUE_LIMIT)
+            if (OncePerMissionTraps.Contains(gameId))
             {
-                return false;
+                int alreadyQueued = 0;
+                foreach (string queuedItem in _itemQueue)
+                {
+                    if (queuedItem == apItemName)
+                    {
+                        alreadyQueued++;
+                    }
+                }
+
+                if (alreadyQueued >= ONCE_PER_MISSION_TRAP_QUEUE_LIMIT)
+                {
+                    return false;
+                }   
             }
         }
 
@@ -138,7 +143,7 @@ public class ItemReceiver
     {
         try
         {
-            string itemName = _lookupTable.ApItemNameToGameIdTable[apItemName];
+            string itemName = _items[apItemName].GameId;
 
             Logger.Msg("Received Item: " + apItemName);
 

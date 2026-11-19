@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using APNestClient.Data;
 using APNestClient.ModLoader;
 using HarmonyLib;
 
@@ -9,12 +10,12 @@ namespace APNestClient;
 public class MissionCompleteChecks
 {
     public static event Action<string> LocationCompleted;
-    private static Dictionary<string, string> _lookupTable = new LookupTables(LookupTables.TableType.MissionLocations).MissionNameToAPLocationNameTable;
+    private static IReadOnlyDictionary<string, MissionInfo> _missions = DataHolders.MissionsByGameId;
     
     static void Postfix(MissionManager __instance)
     {
         var currentMission = __instance.CurrentMission.MissionID;
         Logger.Msg("MissionCompleteCheck: " + currentMission);
-        LocationCompleted?.Invoke(_lookupTable[currentMission]);
+        LocationCompleted?.Invoke(_missions[currentMission].APName);
     }
 }
