@@ -32,4 +32,18 @@ public class TeleprinterHelper
                 false
             );
     }
+
+    // the 'printer' on the left of the secondary one, intended for AP messages
+    public static void printTextOnTertiary(List<string> text)
+    {
+        Teleprinter tertiary = TertiaryTeleprinter.Printer;
+
+        tertiary
+            .SubmitLines(
+                Guid.NewGuid().ToString(),
+                text.Cast<IEnumerable<string>>(),
+                null,
+                false
+            );
+    }
 }

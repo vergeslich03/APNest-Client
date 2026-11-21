@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Reflection;
+using APNestClient.Data;
 using APNestClient.ModLoader;
 using HarmonyLib;
 
@@ -10,22 +11,8 @@ namespace APNestClient;
 [HarmonyPatch]
 public class MissionEntryGuard
 {
-    private static readonly Dictionary<string, List<string>> _prerequisites =
-        new LookupTables(LookupTables.TableType.MissionPrerequisites).MissionPrerequisiteTable;
-
-    private static readonly Dictionary<string, string> _gameIdToApName = BuildReverseItemTable();
-
-    private static Dictionary<string, string> BuildReverseItemTable()
-    {
-        Dictionary<string, string> reverse = new();
-        foreach (KeyValuePair<string, string> entry in
-                 new LookupTables(LookupTables.TableType.Items).ApItemNameToGameIdTable)
-        {
-            reverse[entry.Value] = entry.Key;
-        }
-
-        return reverse;
-    }
+    private static readonly IReadOnlyDictionary<string, MissionInfo> _missions = DataHolders.MissionsByGameId;
+    private static readonly IReadOnlyDictionary<string, ItemInfo> _items = DataHolders.ItemsByGameId;
 
     public static List<string> MissingRequirements(string missionId)
     {
@@ -36,21 +23,16 @@ public class MissionEntryGuard
             return missing;
         }
 
-        if (!_prerequisites.TryGetValue(missionId, out List<string> requiredCards))
-        {
-            return missing;
-        }
-
         if (ProgressionManager.Instance == null)
         {
             return missing;
         }
-
-        foreach (string cardId in requiredCards)
+        
+        foreach (string cardId in _missions[missionId].Prerequisites)
         {
             if (!ProgressionManager.Instance.IsCardUnlocked(cardId))
             {
-                missing.Add(_gameIdToApName.TryGetValue(cardId, out string apName) ? apName : cardId);
+                missing.Add(_items[cardId].APName);
             }
         }
 

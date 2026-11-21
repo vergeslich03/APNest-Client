@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using APNestClient.Data;
 using APNestClient.ModLoader;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
@@ -42,6 +43,8 @@ public class APSession
     private DeathLinkService _deathLinkService;
     private bool _deathLinkEnabled;
     public static bool PendingRemoteDeathLink;
+    
+    private APMessagePrinter _messagePrinter;
 
     private int _lastItemIndexHandled = -1;
     private string _goal;
@@ -50,7 +53,9 @@ public class APSession
     private bool _sentGoal = false;
     
     public static event Action<string> ItemReceived;
-    
+    // raised when connecting to a different seed than last time
+    public static event Action SeedChanged;
+
     public APSession()
     {
         _locationsQueueFile = Path.Combine(DataDirectory, "LocationsQueue.txt");
@@ -114,6 +119,9 @@ public class APSession
             Logger.Msg("Successfully Connected to Archipelago, have fun!");
 
             BuildGoalChecklist();
+
+            _messagePrinter = new APMessagePrinter(slotName);
+            _session.MessageLog.OnMessageReceived += message => _messagePrinter.Enqueue(message);
             
             string currentSeed = _session.RoomState.Seed;
             if (!File.Exists(_seedFile))
@@ -134,6 +142,7 @@ public class APSession
                 }
                 
                 _pendingItemNames.Clear();
+                SeedChanged?.Invoke();
                 _sentGoal = false;
 
                 List<string> tmpList = new();
@@ -210,6 +219,7 @@ public class APSession
         _connectionState = APConnectionState.Disconnected;
         PendingRemoteDeathLink = false;
         _pendingDeathLinks.Clear();
+        _messagePrinter =  null;
     }
 
     public void SendLocationChecks(string[] locationNames)
@@ -321,8 +331,8 @@ public class APSession
             }
             case "all_medals":
             {
-                LookupTables lookuptable = new LookupTables(LookupTables.TableType.MedalLocations);
-                foreach ((string medal, string check) in lookuptable.MedalNameToAPLocationNameTable)
+                IReadOnlyDictionary<string, string> medals = DataHolders.MedalLocationsByGameKey;
+                foreach ((string medal, string check) in medals)
                 {
                     string medalLower = check.ToLower();
                     if (medalLower.EndsWith(_medalTier) && !medalLower.StartsWith("mission 15"))
@@ -453,4 +463,6 @@ public class APSession
     {
         return _loginFailureReason;
     }
+
+    public void ProcessPendingAPMessages() => _messagePrinter?.Print();
 }

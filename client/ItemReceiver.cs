@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using APNestClient.Data;
+using APNestClient.Util;
 using Il2CppInterop.Runtime;
 using Il2CppSystem.Collections.Generic;
 using UnityEngine;
@@ -17,34 +19,95 @@ public class ItemReceiver
     private const string CB_DEFAULT_ID = "APArtillery";
     private const int VALVE_SABOTAGE_MIN = 2;
     private const int VALVE_SABOTAGE_MAX = 5;
+
+    // only keeps a few entries for traps, that can only be triggered once per mission
+    // originally debugging for Issue #22, but good nonetheless as to not make it too repetitive
+    // I imagine starting every mission with closing valves and starting the engine gets old fast
+    private const int ONCE_PER_MISSION_TRAP_QUEUE_LIMIT = 3;
+    private static readonly System.Collections.Generic.HashSet<string> OncePerMissionTraps = new() { "TrapSabotage" };
     
     
     private string _itemQueueFile;
     private object _itemQueueLock = new();
 
-    private LookupTables _lookupTable;
+    private IReadOnlyDictionary<string, ItemInfo> _items;
 
     private ConcurrentQueue<string> _itemQueue = new();
     private int _drainedMissionGeneration;
 
     private bool _sabotageThisMission = false;
 
+    // while draining, re-queued items are only written to disk once at the end of the drain to conserve resources
+    private bool _draining;
+    private int _droppedDuringDrain;
+
     public ItemReceiver()
     {
         _itemQueueFile = Path.Combine(APSession.DataDirectory, "ItemQueue.txt");
 
-        _lookupTable = new LookupTables(LookupTables.TableType.Items);
+        System.Collections.Generic.IReadOnlyDictionary<string, ItemInfo> _items = DataHolders.ItemsByApName;
         APSession.ItemReceived += itemName => ProcessAPItem(itemName);
+        APSession.SeedChanged += ClearQueue;
 
         if (!File.Exists(_itemQueueFile))
         {
             File.Create(_itemQueueFile).Close();
         }
 
+        int dropped = 0;
         foreach (string queuedItem in File.ReadAllLines(_itemQueueFile))
         {
-            _itemQueue.Enqueue(queuedItem);
+            if (!TryEnqueue(queuedItem))
+            {
+                dropped++;
+            }
         }
+
+        if (dropped > 0)
+        {
+            Logger.Warning("Dropped " + dropped + " surplus once-per-mission traps from the Item Queue");
+            File.WriteAllLines(_itemQueueFile, _itemQueue);
+        }
+    }
+
+    // enqueues the item unless it is a once-per-mission trap that is already queued often enough
+    private bool TryEnqueue(string apItemName)
+    {
+        if (_items.ContainsKey(apItemName))
+        {
+            string gameId = _items[apItemName].GameId;
+
+            if (OncePerMissionTraps.Contains(gameId))
+            {
+                int alreadyQueued = 0;
+                foreach (string queuedItem in _itemQueue)
+                {
+                    if (queuedItem == apItemName)
+                    {
+                        alreadyQueued++;
+                    }
+                }
+
+                if (alreadyQueued >= ONCE_PER_MISSION_TRAP_QUEUE_LIMIT)
+                {
+                    return false;
+                }   
+            }
+        }
+
+        _itemQueue.Enqueue(apItemName);
+        return true;
+    }
+
+    private void ClearQueue()
+    {
+        lock (_itemQueueLock)
+        {
+            _itemQueue.Clear();
+            File.WriteAllLines(_itemQueueFile, _itemQueue);
+        }
+
+        Logger.Msg("Item Queue cleared for new seed.");
     }
 
     private void DrainQueue()
@@ -52,9 +115,23 @@ public class ItemReceiver
         // only process what was queued before this drain started. Items that cannot be handled yet
         // are re-enqueued by ProcessAPItem, and must wait for the next mission instead of being dequeued again in the same loop.
         int itemsToProcess = _itemQueue.Count;
-        for (int i = 0; i < itemsToProcess && _itemQueue.TryDequeue(out string itemName); i++)
+        _draining = true;
+        _droppedDuringDrain = 0;
+        try
         {
-            ProcessAPItem(itemName);
+            for (int i = 0; i < itemsToProcess && _itemQueue.TryDequeue(out string itemName); i++)
+            {
+                ProcessAPItem(itemName);
+            }
+        }
+        finally
+        {
+            _draining = false;
+        }
+
+        if (_droppedDuringDrain > 0)
+        {
+            Logger.Warning("Dropped " + _droppedDuringDrain + " surplus once-per-mission traps from the Item Queue");
         }
 
         lock (_itemQueueLock)
@@ -67,7 +144,7 @@ public class ItemReceiver
     {
         try
         {
-            string itemName = _lookupTable.ApItemNameToGameIdTable[apItemName];
+            string itemName = _items[apItemName].GameId;
 
             Logger.Msg("Received Item: " + apItemName);
 
@@ -98,34 +175,29 @@ public class ItemReceiver
         }
         catch (NullReferenceException)
         {
-            _itemQueue.Enqueue(apItemName);
+            if (!TryEnqueue(apItemName))
+            {
+                if (_draining)
+                {
+                    _droppedDuringDrain++;
+                }
+                else
+                {
+                    Logger.Warning("Dropped '" + apItemName + "', already queued " + ONCE_PER_MISSION_TRAP_QUEUE_LIMIT + " times");
+                }
+                return;
+            }
+
+            if (_draining)
+            {
+                return;
+            }
+
             lock (_itemQueueLock)
             {
                 File.WriteAllLines(_itemQueueFile, _itemQueue);
             }
         }
-    }
-
-    // Some vanilla IDs carry stray leading/trailing whitespaces
-    // (like "CYANShell ", "WPShell ") - Since I use the trimmed version, getting the in-game Ids throws an error on dict lookup
-    private static PunchcardDefinitionV2 GetPunchcardDefinition(string id)
-    {
-        Dictionary<string, PunchcardDefinitionV2> allDefinitions = RequisitionConsoleManager.Instance.AllDefinitions;
-
-        if (allDefinitions.TryGetValue(id, out PunchcardDefinitionV2 exactMatch))
-        {
-            return exactMatch;
-        }
-
-        foreach (KeyValuePair<string, PunchcardDefinitionV2> entry in allDefinitions)
-        {
-            if (entry.Key.Trim() == id)
-            {
-                return entry.Value;
-            }
-        }
-
-        throw new System.Collections.Generic.KeyNotFoundException("No PunchcardDefinitionV2 found for '" + id);
     }
 
     private void HandlePunchcardItem(string punchcardName)
@@ -139,7 +211,7 @@ public class ItemReceiver
             return;
         }
 
-        PunchcardDefinitionV2 punchcard = GetPunchcardDefinition(punchcardName);
+        PunchcardDefinitionV2 punchcard = GraphUtil.GetPunchcardDefinitionById(punchcardName);
         List<PunchcardDefinitionV2> punchcardList = new();
         punchcardList.Add(punchcard);
 
@@ -190,7 +262,7 @@ public class ItemReceiver
             }
             case "SpawnSpotter":
             {
-                PunchcardDefinitionV2 spotterCard = GetPunchcardDefinition("Spotter");
+                PunchcardDefinitionV2 spotterCard = GraphUtil.GetPunchcardDefinitionById("Spotter");
 
                 string spotterId = null;
                 EntityRoles spotterRole = EntityRoles.Ally;
@@ -246,20 +318,13 @@ public class ItemReceiver
                 MapEntity spotterEntity = FireMission.Instance.CreateMapEntity(spotterId, spotterDisplayName, 0, pos, spotterRole, spotterHealth, spotterArmour, 0, spotterState, spotterIconID);
                 FireMission.Instance.RegisterMapEntity(spotterEntity);
 
-                foreach (Node node in spotterCard.Graph.nodes)
-                {
-                    State_TeleprinterText teleprinterNode = node.TryCast<State_TeleprinterText>();
-                    if (teleprinterNode != null)
-                    {
-                        SubmitTeleprinterReport(teleprinterNode, spotterEntity.ID);
-                    }
-                }
+                GraphUtil.SubmitTeleprinterReport(spotterCard, spotterEntity.ID);
 
                 break;
             }
             case "SpawnLocationReport":
             {
-                PunchcardDefinitionV2 convoyCard = GetPunchcardDefinition("LocationReport");
+                PunchcardDefinitionV2 convoyCard = GraphUtil.GetPunchcardDefinitionById("LocationReport");
 
                 string convoyId = null;
                 EntityRoles convoyRole = EntityRoles.Ally;
@@ -315,40 +380,10 @@ public class ItemReceiver
                 MapEntity convoyEntity = FireMission.Instance.CreateMapEntity(convoyId, convoyDisplayName, 0, pos, convoyRole, convoyHealth, convoyArmour, 0, convoyState, convoyIconID);
                 FireMission.Instance.RegisterMapEntity(convoyEntity);
 
-                foreach (Node node in convoyCard.Graph.nodes)
-                {
-                    State_TeleprinterText teleprinterNode = node.TryCast<State_TeleprinterText>();
-                    if (teleprinterNode != null)
-                    {
-                        SubmitTeleprinterReport(teleprinterNode, convoyEntity.ID);
-                    }
-                }
+                GraphUtil.SubmitTeleprinterReport(convoyCard, convoyEntity.ID);
 
                 break;
             }
-        }
-    }
-    
-    private static void SubmitTeleprinterReport(State_TeleprinterText node, string entityId)
-    {
-        string text = node.Text != null ? node.Text.Get() : null;
-        if (string.IsNullOrEmpty(text))
-        {
-            return;
-        }
-
-        foreach (State_TeleprinterText.StringReplacement replacement in node.EntityIDToReplace)
-        {
-            text = text.Replace(replacement.Text, entityId);
-        }
-
-        List<string> lines = FireMissionTokenProcessor.ProcessBlock(text, new Dictionary<string, GridReference>());
-        Teleprinter printer = Teleprinter.GetTeleprinter(node.Printer);
-        printer.SubmitLines(Guid.NewGuid().ToString(), lines.Cast<IEnumerable<string>>(), null, node.WaitUntilComplete);
-
-        if (node.AlarmState != Teleprinter.TeleprinterAlarmState.None)
-        {
-            printer.SignalAlarm(node.AlarmState);
         }
     }
 
@@ -365,7 +400,7 @@ public class ItemReceiver
         {
             case "TrapFillMagazine":
             {
-                PunchcardDefinitionV2 starShellCard = GetPunchcardDefinition("STARShell");
+                PunchcardDefinitionV2 starShellCard = GraphUtil.GetPunchcardDefinitionById("STARShell");
                 ShellDefinition shell = null;
                 foreach (Node node in starShellCard.Graph.nodes)
                 {
@@ -409,7 +444,7 @@ public class ItemReceiver
             }
             case "TrapEmergencyMove":
             {
-                PunchcardDefinitionV2 emergencyMoveCard = GetPunchcardDefinition("MoveZone");
+                PunchcardDefinitionV2 emergencyMoveCard = GraphUtil.GetPunchcardDefinitionById("MoveZone");
 
                 LocationSelection moveTarget = null;
                 foreach (Node node in emergencyMoveCard.Graph.nodes)
@@ -443,14 +478,7 @@ public class ItemReceiver
 
                     TurretController.Instance.MoveTurret(targetPos);
 
-                    foreach (Node node in emergencyMoveCard.Graph.nodes)
-                    {
-                        State_TeleprinterText teleprinterNode = node.TryCast<State_TeleprinterText>();
-                        if (teleprinterNode != null)
-                        {
-                            SubmitTeleprinterReport(teleprinterNode, "");
-                        }
-                    }
+                    GraphUtil.SubmitTeleprinterReport(emergencyMoveCard, "");
 
                     break;
                 }
@@ -491,14 +519,7 @@ public class ItemReceiver
 
                 TurretController.Instance.MoveTurret(movePos);
 
-                foreach (Node node in emergencyMoveCard.Graph.nodes)
-                {
-                    State_TeleprinterText teleprinterNode = node.TryCast<State_TeleprinterText>();
-                    if (teleprinterNode != null)
-                    {
-                        SubmitTeleprinterReport(teleprinterNode, "");
-                    }
-                }
+                GraphUtil.SubmitTeleprinterReport(emergencyMoveCard, "");
 
                 break;
             }
