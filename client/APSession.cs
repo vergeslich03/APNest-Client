@@ -50,7 +50,9 @@ public class APSession
     private bool _sentGoal = false;
     
     public static event Action<string> ItemReceived;
-    
+    // raised when connecting to a different seed than last time
+    public static event Action SeedChanged;
+
     public APSession()
     {
         _locationsQueueFile = Path.Combine(DataDirectory, "LocationsQueue.txt");
@@ -134,6 +136,7 @@ public class APSession
                 }
                 
                 _pendingItemNames.Clear();
+                SeedChanged?.Invoke();
                 _sentGoal = false;
 
                 List<string> tmpList = new();
