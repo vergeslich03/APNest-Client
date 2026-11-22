@@ -13,6 +13,7 @@ public class ModConfig
     private readonly ConfigEntry<string> _apHost;
     private readonly ConfigEntry<int> _apPort;
     private readonly ConfigEntry<string> _apSlotName;
+    private readonly ConfigEntry<bool> _debugMode;
     
     public ModConfig(ConfigFile cfgFile)
     {
@@ -20,6 +21,7 @@ public class ModConfig
         _apHost = cfgFile.Bind("APNestClient", "APHost", "archipelago.gg");
         _apPort = cfgFile.Bind("APNestClient", "APPort", 38281);
         _apSlotName = cfgFile.Bind("APNestClient", "APSlotName", "IronNest");
+        _debugMode = cfgFile.Bind("APNestClient", "DebugMode", false, "Enables debug hotkeys (F10: finish current mission with all Gold medals)");
     }
     
     public void Save() => _cfgFile.Save();
@@ -28,6 +30,7 @@ public class ModConfig
     private readonly MelonPreferences_Entry<string> _apHost;
     private readonly MelonPreferences_Entry<int> _apPort;
     private readonly MelonPreferences_Entry<string> _apSlotName;
+    private readonly MelonPreferences_Entry<bool> _debugMode;
 
     public ModConfig()
     {
@@ -35,6 +38,7 @@ public class ModConfig
         _apHost = _category.CreateEntry("APHost", "archipelago.gg");
         _apPort = _category.CreateEntry("APPort", 38281);
         _apSlotName = _category.CreateEntry("APSlotName", "IronNest");
+        _debugMode = _category.CreateEntry("DebugMode", false, description: "Enables debug hotkeys (F10: finish current mission with all Gold medals)");
     }
 
     public void Save() => _category.SaveToFile();
@@ -43,4 +47,5 @@ public class ModConfig
     public string Host { get => _apHost.Value; set => _apHost.Value = value; }
     public int Port { get => _apPort.Value; set => _apPort.Value = value; }
     public string SlotName { get => _apSlotName.Value; set => _apSlotName.Value = value; }
+    public bool DebugMode => _debugMode.Value;
 }

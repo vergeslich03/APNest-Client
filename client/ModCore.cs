@@ -11,6 +11,7 @@ namespace APNestClient
         private MainMenuAPHook _mainMenuAPHook;
 
         private bool _initialized;
+        private bool _debugMode;
 
         public void Initialize(ModConfig config)
         {
@@ -20,6 +21,11 @@ namespace APNestClient
             _apSession = _connectUI.GetApSession();
             _itemReceiver = new ItemReceiver();
             _mainMenuAPHook = new MainMenuAPHook(_connectUI);
+            _debugMode = config.DebugMode;
+            if (_debugMode)
+            {
+                Logger.Warning("Debug mode enabled: F10 finishes the current mission with all Gold medals.");
+            }
 
             MissionCompleteChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
             MedalAchievedChecks.LocationCompleted += name => _apSession.SendLocationChecks(new []{name});
@@ -40,6 +46,11 @@ namespace APNestClient
             MissionReadyGuard.RegisterMissionChangedEventHook();
             _itemReceiver.ProcessPendingMissionLoad();
             _mainMenuAPHook.RegisterMainMenuHooks();
+
+            if (_debugMode)
+            {
+                DebugFinishMission.PollHotkey();
+            }
         }
     }
 }
