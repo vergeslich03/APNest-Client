@@ -295,23 +295,8 @@ public class ItemReceiver
                     break;
                 }
 
-                List<Zone> allyZones = new();
-                foreach (Zone zone in MissionManager.Instance.CurrentMission.Zones)
-                {
-                    if (zone.Role == EntityRoles.Ally)
-                    {
-                        allyZones.Add(zone);
-                    }
-                }
-
-                if (allyZones.Count == 0)
-                {
-                    Logger.Warning("No Ally zone found, falling back to Zones[0]");
-                    allyZones.Add(MissionManager.Instance.CurrentMission.Zones[0]);
-                }
-
                 Il2CppSystem.Random spawnRand = new();
-                Zone spawnZone = allyZones[spawnRand.Next(allyZones.Count)];
+                Zone spawnZone = MissionUtil.RandomZone(spotterRole);
                 GridReference gridRef = spawnZone.GetRandomGridPosition(spawnRand);
                 Vector3 pos = gridRef.GetLocation(FireMission.Instance.GetGridBounds());
 
@@ -357,23 +342,8 @@ public class ItemReceiver
                     break;
                 }
 
-                List<Zone> allyZones = new();
-                foreach (Zone zone in MissionManager.Instance.CurrentMission.Zones)
-                {
-                    if (zone.Role == EntityRoles.Ally)
-                    {
-                        allyZones.Add(zone);
-                    }
-                }
-
-                if (allyZones.Count == 0)
-                {
-                    Logger.Warning("No Ally zone found, falling back to Zones[0]");
-                    allyZones.Add(MissionManager.Instance.CurrentMission.Zones[0]);
-                }
-
                 Il2CppSystem.Random spawnRand = new();
-                Zone spawnZone = allyZones[spawnRand.Next(allyZones.Count)];
+                Zone spawnZone = MissionUtil.RandomZone(convoyRole);
                 GridReference gridRef = spawnZone.GetRandomGridPosition(spawnRand);
                 Vector3 pos = gridRef.GetLocation(FireMission.Instance.GetGridBounds());
 
@@ -541,24 +511,9 @@ public class ItemReceiver
                 // goes stale so only one timer survives.
                 CounterBatteryTimer cbtInstance = CBHelper.GetOrSpawnCbtTimer();
                 cbtInstance.AddTime(CBT_DEFAULT_TIME);
-
-                List<Zone> enemyZones = new();
-                foreach (Zone zone in MissionManager.Instance.CurrentMission.Zones)
-                {
-                    if (zone.Role == EntityRoles.Enemy)
-                    {
-                        enemyZones.Add(zone);
-                    }
-                }
-
-                if (enemyZones.Count == 0)
-                {
-                    Logger.Warning("No Enemy zone found, falling back to Zones[0]");
-                    enemyZones.Add(MissionManager.Instance.CurrentMission.Zones[0]);
-                }
                 
                 Il2CppSystem.Random spawnRand = new();
-                Zone spawnZone = enemyZones[spawnRand.Next(enemyZones.Count)];
+                Zone spawnZone = MissionUtil.RandomZone(EntityRoles.Enemy);
                 GridReference gridRef = spawnZone.GetRandomGridPosition(spawnRand);
                 Vector3 pos = gridRef.GetLocation(FireMission.Instance.GetGridBounds());
 

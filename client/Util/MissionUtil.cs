@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using APNestClient.ModLoader;
 
@@ -5,8 +6,10 @@ namespace APNestClient.Util;
 
 public static class MissionUtil
 {
-    public static List<Zone> RandomZone(EntityRoles role)
+    public static Zone RandomZone(EntityRoles role)
     {
+        Random rand = new();
+        
         List<Zone> zones = new();
         foreach (Zone zone in MissionManager.Instance.CurrentMission.Zones)
         {
@@ -22,6 +25,6 @@ public static class MissionUtil
             zones.Add(MissionManager.Instance.CurrentMission.Zones[0]);
         }
 
-        return zones;
+        return zones[rand.Next(zones.Count)];
     }
 }
