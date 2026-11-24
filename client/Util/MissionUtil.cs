@@ -5,7 +5,7 @@ namespace APNestClient.Util;
 
 public static class MissionUtil
 {
-    public static Zone RandomZone(EntityRoles role)
+    public static List<Zone> RandomZone(EntityRoles role)
     {
         List<Zone> zones = new();
         foreach (Zone zone in MissionManager.Instance.CurrentMission.Zones)
@@ -19,9 +19,9 @@ public static class MissionUtil
         if (zones.Count == 0)
         {
             Logger.Warning("Could not  find any zones for role " + role + ". Using fallback zone.");
-            return MissionManager.Instance.CurrentMission.Zones[0];
+            zones.Add(MissionManager.Instance.CurrentMission.Zones[0]);
         }
 
-        return zones[0];
+        return zones;
     }
 }
