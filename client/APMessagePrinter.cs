@@ -53,7 +53,7 @@ public class APMessagePrinter
             msgs.Add(msg);
         }
 
-        TeleprinterHelper.printTextOnTertiary(msgs);
+        TeleprinterHelper.printTextOnTeleprinter(msgs, TeleprinterType.Archipelago, Teleprinter.TeleprinterAlarmState.None);
     }
 
     private static string ToRichText(LogMessage message)
