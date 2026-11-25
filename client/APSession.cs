@@ -205,7 +205,7 @@ public class APSession
                 Logger.Msg("Death-Link enabled, watch for friendly fire.");
             }
         }
-        catch (Exception e)
+        catch (System.Exception e)
         {
             _connectionState = APConnectionState.Failed;
             _loginFailureReason = e.Message;
@@ -431,8 +431,8 @@ public class APSession
         
         try
         {
-            TeleprinterHelper.printTextOnPrimary(deathLinkLinesPrimary, Teleprinter.TeleprinterAlarmState.High);
-            TeleprinterHelper.printTextOnSecondary(deathLinkLinesSecondary, Teleprinter.TeleprinterAlarmState.High);
+            TeleprinterHelper.printTextOnTeleprinter(deathLinkLinesPrimary, TeleprinterType.Primary, Teleprinter.TeleprinterAlarmState.High);
+            TeleprinterHelper.printTextOnTeleprinter(deathLinkLinesSecondary, TeleprinterType.Secondary, Teleprinter.TeleprinterAlarmState.High);
             CounterBatteryTimer timer = CBHelper.GetOrSpawnCbtTimer();
             
             if (!timer.IsRunning)
@@ -442,7 +442,7 @@ public class APSession
             timer.SetTime(5f);
             Logger.Msg("DeathLink received: " + deathLink.Cause);
         }
-        catch (Exception e)
+        catch (System.Exception e)
         {
             Logger.Error(e.Message);
             PendingRemoteDeathLink = false;
