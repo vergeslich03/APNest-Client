@@ -2,6 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using APNestClient.Data;
+using APNestClient.Exception;
+using APNestClient.ItemHandler;
 using APNestClient.Util;
 using Il2CppInterop.Runtime;
 using Il2CppSystem.Collections.Generic;
@@ -359,148 +361,33 @@ public class ItemReceiver
 
     private void HandleTrapItem(string trapName)
     {
+        // most of the traps either don't work in or break mission 1 and 2, so skip traps for those 
+        if (TutorialGuard.IsTutorial())
+        {
+            throw new ItemDeferredException("Mission 1 or 2 are not intended for traps.");
+        }
+        
         // traps touch a lot of live scene state (engine, valves, shell pool, map entities, etc.),
         // so they must only fire in a fully initialized, still running mission.
         if (!MissionReadyGuard.IsReady())
         {
-            throw new NullReferenceException("Mission not ready for traps");
+            throw new ItemDeferredException("Mission not ready for traps");
         }
 
         switch (trapName)
         {
             case "TrapFillMagazine":
             {
-                PunchcardDefinitionV2 starShellCard = GraphUtil.GetPunchcardDefinitionById("STARShell");
-                ShellDefinition shell = null;
-                foreach (Node node in starShellCard.Graph.nodes)
-                {
-                    State_AddShell shellCandidate = node.TryCast<State_AddShell>();
-                    if (shellCandidate != null)
-                    {
-                        shell = shellCandidate.Shell;
-                        break;
-                    }
-                }
-
-                if (shell == null)
-                {
-                    Logger.Warning("Shell configured for Trap not found (STARShell)");
-                    break;
-                }
-                
-                ShellSlotPool shellSlotPool = UnityEngine.Object.FindFirstObjectByType<ShellSlotPool>();
-                try
-                {
-                    bool inserted = true;
-                    while (inserted)
-                    {
-                        inserted = shellSlotPool.InsertShell(
-                            shell,
-                            ShellSlotPool.ShellInsertionMode.FillOneThenNext,
-                            ShellSlotPool.ShellSource.Punchcard,
-                            out _,
-                            out _
-                        );
-                    }
-                }
-                catch (Il2CppInterop.Runtime.Il2CppException)
-                {
-                    // game throws Error if the whole magazine is full instead of returning false
-                    // Not sure if this is a bug or simply forgotten and handled via try/catch in game
-                    Logger.Msg("Trap Magazine Fill completed");
-                }
-
+                TrapHandler.HandleMagazineTrap();
                 break;
             }
             case "TrapEmergencyMove":
             {
-                PunchcardDefinitionV2 emergencyMoveCard = GraphUtil.GetPunchcardDefinitionById("MoveZone");
-
-                LocationSelection moveTarget = null;
-                foreach (Node node in emergencyMoveCard.Graph.nodes)
-                {
-                    State_MoveTurret moveCandidate = node.TryCast<State_MoveTurret>();
-                    if (moveCandidate != null)
-                    {
-                        moveTarget = moveCandidate.LocationToMoveTo;
-                        break;
-                    }
-                }
-
-                if (moveTarget == null)
-                {
-                    Logger.Warning("Could not find Move Turret Node (MoveZone)");
-                    break;
-                }
-
-                if (moveTarget.LocationType == LocationSelection.LocationTypes.Relative
-                    && moveTarget.RelativeTo == LocationSelection.RelativeReferenceTypes.Self
-                    && moveTarget.RelativeDirection == LocationSelection.RelativeDirections.RandomInRadius)
-                {
-                    float minDistance = moveTarget.DistanceMin.Get(null);
-                    float maxDistance = moveTarget.DistanceMax.Get(null);
-
-                    Vector3 currentPos = TurretController.Instance.transform.position;
-                    float angleRad = UnityEngine.Random.Range(0f, 360f) * Mathf.Deg2Rad;
-                    float distance = UnityEngine.Random.Range(minDistance, maxDistance);
-                    Vector3 offset = new Vector3(Mathf.Cos(angleRad) * distance, 0f, Mathf.Sin(angleRad) * distance);
-                    Vector3 targetPos = GridReference.ClampToGridBounds(currentPos + offset, FireMission.Instance.GetGridBounds());
-
-                    TurretController.Instance.MoveTurret(targetPos);
-
-                    GraphUtil.SubmitTeleprinterReport(emergencyMoveCard, "");
-
-                    break;
-                }
-
-                if (moveTarget.LocationType == LocationSelection.LocationTypes.Relative)
-                {
-                    Logger.Warning(
-                        "Emergency Move card uses unsupported Relative config: RelativeTo="
-                        + moveTarget.RelativeTo + " RelativeDirection=" + moveTarget.RelativeDirection);
-                    break;
-                }
-
-                if (moveTarget.LocationType != LocationSelection.LocationTypes.Zone)
-                {
-                    Logger.Warning("Emergency Move card uses unsupported LocationType: " + moveTarget.LocationType);
-                    break;
-                }
-
-                Zone targetZone = null;
-                foreach (Zone zone in MissionManager.Instance.CurrentMission.Zones)
-                {
-                    if (zone.ID == moveTarget.ZoneID)
-                    {
-                        targetZone = zone;
-                        break;
-                    }
-                }
-
-                if (targetZone == null)
-                {
-                    Logger.Warning("Could not find Zone '" + moveTarget.ZoneID + "' for Emergency Move");
-                    break;
-                }
-
-                Il2CppSystem.Random moveRand = new();
-                GridReference moveGridRef = targetZone.GetRandomGridPosition(moveRand);
-                Vector3 movePos = moveGridRef.GetLocation(FireMission.Instance.GetGridBounds());
-
-                TurretController.Instance.MoveTurret(movePos);
-
-                GraphUtil.SubmitTeleprinterReport(emergencyMoveCard, "");
-
+                TrapHandler.HandleEmergencyMoveTrap();
                 break;
             }
             case "TrapCounterBattery":
             {
-                // bail out on those two missions, since they are not built for CB and do not have the ordnance for it.
-                if (TutorialGuard.IsTutorial())
-                {
-                    throw new NullReferenceException("Mission 1 or 2 are not completable with CBT");
-                }
-                
                 // Not every mission has a CounterBatteryTimer instance, it's only instantiated by
                 // the mission's own State_StartTimer node once that node's trigger fires.
                 // Interestingly enough, mission 1 and 3 don't have the node at all, while mission 2 does for some reason
@@ -542,8 +429,16 @@ public class ItemReceiver
                 cbtLinesSecondary.Add("ENEMY ARTILLERY SPOTTED IN SECTOR " + gridRef.Location);
                 cbtLinesSecondary.Add("------------------------------------");
 
-                TeleprinterHelper.printTextOnPrimary(cbtLinesPrimary, Teleprinter.TeleprinterAlarmState.High);
-                TeleprinterHelper.printTextOnSecondary(cbtLinesPrimary, Teleprinter.TeleprinterAlarmState.High);
+                TeleprinterHelper.printTextOnTeleprinter(
+                    cbtLinesPrimary,
+                    TeleprinterType.Primary,
+                    Teleprinter.TeleprinterAlarmState.High
+                );
+                TeleprinterHelper.printTextOnTeleprinter(
+                    cbtLinesSecondary,
+                    TeleprinterType.Secondary,
+                    Teleprinter.TeleprinterAlarmState.High
+                );
                 
                 cbtInstance.StartTimer();
 

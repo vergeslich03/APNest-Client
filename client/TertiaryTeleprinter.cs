@@ -54,7 +54,7 @@ public static class TertiaryTeleprinter
         {
             Create();
         }
-        catch (Exception e)
+        catch (System.Exception e)
         {
             Logger.Error("Tertiary teleprinter creation failed: " + e);
         }
